@@ -85,6 +85,15 @@ class StudioState:
                 / "Application"
                 / "chrome.exe"
             ),
+            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
+            str(
+                Path.home()
+                / "Applications"
+                / "Google Chrome.app"
+                / "Contents"
+                / "MacOS"
+                / "Google Chrome"
+            ),
         ]
         for candidate in candidates:
             if candidate and Path(candidate).exists():
@@ -169,18 +178,20 @@ class StudioState:
             PLAYLIST_URL,
         ]
         creationflags = 0
+        popen_kwargs: dict[str, Any] = {
+            "stdout": subprocess.DEVNULL,
+            "stderr": subprocess.DEVNULL,
+            "stdin": subprocess.DEVNULL,
+        }
         if os.name == "nt":
             creationflags = (
                 getattr(subprocess, "DETACHED_PROCESS", 0)
                 | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
             )
-        subprocess.Popen(
-            args,
-            stdout=subprocess.DEVNULL,
-            stderr=subprocess.DEVNULL,
-            stdin=subprocess.DEVNULL,
-            creationflags=creationflags,
-        )
+            popen_kwargs["creationflags"] = creationflags
+        else:
+            popen_kwargs["start_new_session"] = True
+        subprocess.Popen(args, **popen_kwargs)
         self.add_log("Opened Guided Chrome on the YouTube Music Liked Music playlist.", "success")
         return chrome_path
 
@@ -204,7 +215,10 @@ class StudioState:
 
         root = tk.Tk()
         root.withdraw()
-        root.attributes("-topmost", True)
+        try:
+            root.attributes("-topmost", True)
+        except Exception:
+            pass
         selected = filedialog.askdirectory(
             title="Choose a save folder for exports and downloads",
             initialdir=str(self.output_dir),

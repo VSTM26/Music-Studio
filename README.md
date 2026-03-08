@@ -1,6 +1,6 @@
 # Music-Studio
 
-Music-Studio is a local Python app for Windows that helps people:
+Music-Studio is a local Python app for Windows and macOS that helps people:
 
 - open a guided Chrome session for YouTube Music
 - sign in with their own account
@@ -13,12 +13,14 @@ The app runs fully on the user's machine. It does not need Google Cloud OAuth se
 
 ## Requirements
 
-- Windows
+- Windows or macOS
 - Python 3.11 or newer
 - Google Chrome
 - `ffmpeg` on `PATH` if you want MP3 extraction
 
 ## Install
+
+### Windows
 
 ```powershell
 cd D:\liked-music-studio
@@ -27,7 +29,24 @@ python -m venv .venv
 pip install -r requirements.txt
 ```
 
+### macOS
+
+```bash
+cd /path/to/Music-Studio
+python3 -m venv .venv
+source .venv/bin/activate
+pip install -r requirements.txt
+```
+
+If you want MP3 extraction on macOS, install `ffmpeg` first:
+
+```bash
+brew install ffmpeg
+```
+
 ## Run
+
+### Windows
 
 ```powershell
 cd D:\liked-music-studio
@@ -38,6 +57,21 @@ python main.py
 Or double-click:
 
 `run-liked-music-studio.cmd`
+
+### macOS
+
+```bash
+cd /path/to/Music-Studio
+source .venv/bin/activate
+python3 main.py
+```
+
+Or make the launcher executable once and then open it:
+
+```bash
+chmod +x run-liked-music-studio.command
+./run-liked-music-studio.command
+```
 
 The app opens at:
 
@@ -75,3 +109,4 @@ The app opens at:
 - The scraper uses a dedicated Chrome profile in `runtime/chrome-profile` so different people can sign in locally without sharing credentials.
 - Some YouTube Music playlist counts do not perfectly match what the live browser session exposes while scrolling. The app keeps both the reported count and the exported count so the result stays honest.
 - `yt-dlp` is installed through `requirements.txt`. `ffmpeg` still needs to be installed separately if you want MP3 extraction.
+- On macOS, the app looks for Chrome in both `/Applications` and `~/Applications`. You can always override that with `CHROME_PATH`.
