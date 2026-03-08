@@ -1,0 +1,559 @@
+:root {
+  --ink: #132126;
+  --paper: #f7f2e8;
+  --mist: #e9ddd0;
+  --panel: rgba(255, 251, 244, 0.78);
+  --line: rgba(19, 33, 38, 0.12);
+  --shadow: 0 20px 60px rgba(9, 19, 24, 0.16);
+  --sun: #d97a2b;
+  --teal: #1f6966;
+  --ok: #1d7a56;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top left, rgba(217, 122, 43, 0.24), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(31, 105, 102, 0.22), transparent 26%),
+    linear-gradient(180deg, #efe2d2 0%, #f8f3eb 58%, #f4ecdd 100%);
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+button,
+input,
+table {
+  font: inherit;
+}
+
+code {
+  padding: 0.15rem 0.4rem;
+  border-radius: 999px;
+  background: rgba(19, 33, 38, 0.08);
+  font-size: 0.95em;
+}
+
+.page-shell {
+  position: relative;
+  width: min(1320px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 36px 0 48px;
+}
+
+.ambient {
+  position: fixed;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  filter: blur(40px);
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.ambient-left {
+  top: 100px;
+  left: -120px;
+  background: rgba(217, 122, 43, 0.16);
+}
+
+.ambient-right {
+  right: -80px;
+  bottom: 40px;
+  background: rgba(31, 105, 102, 0.16);
+}
+
+.panel {
+  position: relative;
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: var(--panel);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+  animation: rise 480ms ease both;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.6fr 1fr;
+  gap: 24px;
+  padding: 32px;
+}
+
+.eyebrow {
+  margin: 0 0 0.7rem;
+  letter-spacing: 0.16em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-family: "Trebuchet MS", "Segoe UI Variable Display", sans-serif;
+  color: rgba(19, 33, 38, 0.65);
+}
+
+.hero h1,
+.section-heading h2,
+.steps h3 {
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+}
+
+.hero h1 {
+  margin: 0 0 1rem;
+  font-size: clamp(2.5rem, 4vw, 4.25rem);
+  line-height: 0.95;
+  max-width: 8ch;
+}
+
+.lede {
+  max-width: 60ch;
+  font-size: 1.08rem;
+  line-height: 1.7;
+  margin: 0;
+}
+
+.hero-actions {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  gap: 14px;
+}
+
+.action {
+  border: 0;
+  border-radius: 18px;
+  padding: 15px 18px;
+  cursor: pointer;
+  transition:
+    transform 180ms ease,
+    box-shadow 180ms ease,
+    opacity 180ms ease;
+  box-shadow: 0 12px 24px rgba(19, 33, 38, 0.14);
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+  font-size: 1rem;
+}
+
+.action:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.action:disabled {
+  opacity: 0.5;
+  cursor: wait;
+}
+
+.action-primary {
+  background: linear-gradient(135deg, var(--sun) 0%, #e49853 100%);
+  color: #fff8f0;
+}
+
+.action-secondary {
+  background: linear-gradient(135deg, var(--teal) 0%, #2c8c86 100%);
+  color: #f3fffd;
+}
+
+.action-ghost {
+  background: rgba(19, 33, 38, 0.08);
+  color: var(--ink);
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 20px;
+  margin-top: 22px;
+}
+
+.steps-card,
+.status-card,
+.files-card,
+.summary-card,
+.logs-card,
+.tracks-card {
+  padding: 24px;
+}
+
+.steps-card {
+  grid-column: span 4;
+}
+
+.status-card {
+  grid-column: span 8;
+}
+
+.files-card,
+.summary-card {
+  grid-column: span 6;
+}
+
+.media-card {
+  grid-column: span 12;
+}
+
+.logs-card,
+.tracks-card {
+  grid-column: span 12;
+}
+
+.section-heading {
+  margin-bottom: 18px;
+}
+
+.section-heading h2,
+.tracks-head h2 {
+  margin: 0;
+  font-size: 1.6rem;
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+
+.steps li {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: start;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.52);
+  border: 1px solid rgba(19, 33, 38, 0.08);
+}
+
+.step-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(19, 33, 38, 0.08);
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+  font-size: 0.92rem;
+}
+
+.steps h3 {
+  margin: 0 0 0.45rem;
+  font-size: 1.05rem;
+}
+
+.steps p {
+  margin: 0;
+  line-height: 1.55;
+  color: rgba(19, 33, 38, 0.76);
+}
+
+.status-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 16px;
+}
+
+.metric {
+  padding: 18px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.54);
+  border: 1px solid rgba(19, 33, 38, 0.08);
+}
+
+.metric-label {
+  display: inline-block;
+  margin-bottom: 0.6rem;
+  color: rgba(19, 33, 38, 0.6);
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.74rem;
+}
+
+.metric strong {
+  display: block;
+  font-size: 1.3rem;
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+}
+
+.metric-detail {
+  margin: 0.6rem 0 0;
+  line-height: 1.55;
+  color: rgba(19, 33, 38, 0.74);
+}
+
+.file-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.file-pill {
+  min-width: 210px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.75), rgba(248, 241, 231, 0.92));
+  border: 1px solid rgba(19, 33, 38, 0.08);
+  text-decoration: none;
+  color: inherit;
+}
+
+.file-pill strong {
+  display: block;
+  margin-bottom: 0.4rem;
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+}
+
+.summary-banner {
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(31, 105, 102, 0.12), rgba(217, 122, 43, 0.12));
+  border: 1px solid rgba(19, 33, 38, 0.08);
+  line-height: 1.65;
+}
+
+.summary-banner.warning {
+  background: linear-gradient(135deg, rgba(216, 146, 92, 0.22), rgba(217, 122, 43, 0.18));
+}
+
+.folder-strip {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 18px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.54);
+  border: 1px solid rgba(19, 33, 38, 0.08);
+}
+
+.folder-strip h3 {
+  margin: 0;
+  font-size: 1.15rem;
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+}
+
+.folder-actions {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: end;
+  gap: 12px;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 16px;
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+}
+
+.toggle input {
+  width: 18px;
+  height: 18px;
+}
+
+.selection-summary {
+  margin: 14px 0 0;
+  color: rgba(19, 33, 38, 0.76);
+  line-height: 1.55;
+}
+
+.logs {
+  min-height: 320px;
+  max-height: 420px;
+  overflow: auto;
+  padding: 16px;
+  border-radius: 20px;
+  background: #102127;
+  color: #d7efe8;
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.log-line {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.log-time {
+  color: rgba(215, 239, 232, 0.6);
+}
+
+.log-line.error .log-message {
+  color: #ffb0b0;
+}
+
+.log-line.success .log-message {
+  color: #96f2cb;
+}
+
+.tracks-head {
+  display: flex;
+  align-items: end;
+  justify-content: space-between;
+  gap: 16px;
+}
+
+.search-wrap {
+  display: grid;
+  gap: 6px;
+  min-width: min(320px, 100%);
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+}
+
+.search-wrap span {
+  font-size: 0.78rem;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: rgba(19, 33, 38, 0.62);
+}
+
+.search-wrap input {
+  border: 1px solid rgba(19, 33, 38, 0.14);
+  border-radius: 16px;
+  padding: 12px 14px;
+  background: rgba(255, 255, 255, 0.72);
+}
+
+.table-wrap {
+  overflow: auto;
+  border-radius: 22px;
+  border: 1px solid rgba(19, 33, 38, 0.08);
+  background: rgba(255, 255, 255, 0.58);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: rgba(247, 242, 232, 0.96);
+  text-align: left;
+  padding: 14px 16px;
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+  font-size: 0.8rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+}
+
+tbody td {
+  padding: 14px 16px;
+  border-top: 1px solid rgba(19, 33, 38, 0.08);
+  vertical-align: top;
+}
+
+tbody td:first-child,
+thead th:first-child {
+  width: 42px;
+  text-align: center;
+}
+
+tbody tr:hover {
+  background: rgba(255, 255, 255, 0.52);
+}
+
+.track-title {
+  display: block;
+  margin-bottom: 0.28rem;
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+}
+
+.track-link {
+  color: var(--teal);
+  text-decoration: none;
+}
+
+.track-link:hover {
+  text-decoration: underline;
+}
+
+.track-meta {
+  color: rgba(19, 33, 38, 0.62);
+}
+
+.empty-state {
+  color: rgba(19, 33, 38, 0.64);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@media (max-width: 1040px) {
+  .hero,
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .steps-card,
+  .status-card,
+  .files-card,
+  .summary-card,
+  .logs-card,
+  .tracks-card {
+    grid-column: span 1;
+  }
+
+  .status-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 720px) {
+  .page-shell {
+    width: min(100% - 20px, 1320px);
+    padding-top: 20px;
+  }
+
+  .hero,
+  .steps-card,
+  .status-card,
+  .files-card,
+  .summary-card,
+  .logs-card,
+  .tracks-card {
+    padding: 20px;
+    border-radius: 22px;
+  }
+
+  .hero h1 {
+    max-width: none;
+  }
+
+  .tracks-head {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .folder-strip {
+    flex-direction: column;
+  }
+
+  .folder-actions {
+    justify-content: stretch;
+  }
+
+  .search-wrap {
+    min-width: 0;
+    width: 100%;
+  }
+}

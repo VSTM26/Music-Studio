@@ -1,0 +1,198 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Liked Music Studio</title>
+    <link rel="stylesheet" href="/styles.css">
+  </head>
+  <body>
+    <div class="page-shell">
+      <div class="ambient ambient-left"></div>
+      <div class="ambient ambient-right"></div>
+
+      <header class="hero panel">
+        <div class="hero-copy">
+          <p class="eyebrow">YouTube Music Export Workspace</p>
+          <h1>Liked Music Studio</h1>
+          <p class="lede">
+            Launch a guided Chrome session, sign in to YouTube Music, and export your
+            liked songs into shareable <code>.txt</code>, <code>.csv</code>, and
+            <code>.json</code> files. Then optionally download all or only the tracks
+            you select with <code>yt-dlp</code>, with optional MP3 extraction through
+            <code>ffmpeg</code>. The guided browser uses its own local profile, so any
+            user can log in with their own YouTube Music account.
+          </p>
+        </div>
+
+        <div class="hero-actions">
+          <button id="chooseFolderBtn" class="action action-secondary">Choose Save Folder</button>
+          <button id="launchBrowserBtn" class="action action-primary">Open Guided Chrome</button>
+          <button id="runExportBtn" class="action action-primary">Run Export</button>
+          <button id="resetSessionBtn" class="action action-ghost">Reset Guided Session</button>
+        </div>
+      </header>
+
+      <main class="dashboard">
+        <section class="panel steps-card">
+          <div class="section-heading">
+            <p class="eyebrow">Workflow</p>
+            <h2>Three clean steps</h2>
+          </div>
+          <ol class="steps">
+            <li>
+              <span class="step-index">01</span>
+              <div>
+                <h3>Open the guided browser</h3>
+                <p>We use a dedicated Chrome profile so the export can access a stable debug session.</p>
+              </div>
+            </li>
+            <li>
+              <span class="step-index">02</span>
+              <div>
+                <h3>Sign in to YouTube Music</h3>
+                <p>Sign in with your own account in the special Chrome window, then keep it open while exporting.</p>
+              </div>
+            </li>
+            <li>
+              <span class="step-index">03</span>
+              <div>
+                <h3>Run the export</h3>
+                <p>Results land in the local <code>output</code> folder and are previewed below. Reset the guided session any time you want to switch accounts.</p>
+              </div>
+            </li>
+          </ol>
+        </section>
+
+        <section class="panel status-card">
+          <div class="section-heading">
+            <p class="eyebrow">Status</p>
+            <h2>Live studio health</h2>
+          </div>
+          <div class="status-grid">
+            <article class="metric">
+              <span class="metric-label">Chrome</span>
+              <strong id="chromeStatus">Checking...</strong>
+              <p id="chromeDetail" class="metric-detail"></p>
+            </article>
+            <article class="metric">
+              <span class="metric-label">Debug Session</span>
+              <strong id="debugStatus">Checking...</strong>
+              <p id="debugDetail" class="metric-detail"></p>
+            </article>
+            <article class="metric">
+              <span class="metric-label">Export Run</span>
+              <strong id="exportStatus">Idle</strong>
+              <p id="exportDetail" class="metric-detail"></p>
+            </article>
+            <article class="metric">
+              <span class="metric-label">Last Output</span>
+              <strong id="resultStatus">No export yet</strong>
+              <p id="resultDetail" class="metric-detail"></p>
+            </article>
+            <article class="metric">
+              <span class="metric-label">Downloads</span>
+              <strong id="downloadStatus">Idle</strong>
+              <p id="downloadDetail" class="metric-detail"></p>
+            </article>
+            <article class="metric">
+              <span class="metric-label">Tools</span>
+              <strong id="toolStatus">Checking...</strong>
+              <p id="toolDetail" class="metric-detail"></p>
+            </article>
+          </div>
+        </section>
+
+        <section class="panel files-card">
+          <div class="section-heading">
+            <p class="eyebrow">Artifacts</p>
+            <h2>Downloadables</h2>
+          </div>
+          <div id="fileLinks" class="file-links empty-state">
+            Run an export to generate downloadable files.
+          </div>
+        </section>
+
+        <section class="panel summary-card">
+          <div class="section-heading">
+            <p class="eyebrow">Summary</p>
+            <h2>What the export found</h2>
+          </div>
+          <div id="summaryBanner" class="summary-banner empty-state">
+            No results loaded yet.
+          </div>
+        </section>
+
+        <section class="panel media-card">
+          <div class="section-heading">
+            <p class="eyebrow">Downloads</p>
+            <h2>Save the tracks you want</h2>
+          </div>
+          <div class="folder-strip">
+            <div>
+              <p class="eyebrow">Save Folder</p>
+              <h3 id="outputFolderStatus">Using the project output folder</h3>
+              <p id="outputFolderDetail" class="metric-detail"></p>
+            </div>
+            <div class="folder-actions">
+              <button id="downloadSelectedBtn" class="action action-secondary">Download Selected</button>
+              <button id="downloadAllBtn" class="action action-secondary">Download All Exported</button>
+              <button id="clearSelectionBtn" class="action action-ghost">Clear Selection</button>
+            </div>
+          </div>
+          <label class="toggle">
+            <input id="extractAudio" type="checkbox">
+            <span>Extract audio into MP3 files with ffmpeg</span>
+          </label>
+          <p id="selectionSummary" class="selection-summary">
+            Export tracks first, then select the songs you want from the table below.
+          </p>
+        </section>
+
+        <section class="panel logs-card">
+          <div class="section-heading">
+            <p class="eyebrow">Process Log</p>
+            <h2>Live run output</h2>
+          </div>
+          <div id="logs" class="logs empty-state">Waiting for activity...</div>
+        </section>
+
+        <section class="panel tracks-card">
+          <div class="section-heading tracks-head">
+            <div>
+              <p class="eyebrow">Track Browser</p>
+              <h2>Preview liked songs</h2>
+            </div>
+            <label class="search-wrap">
+              <span>Search</span>
+              <input id="trackSearch" type="search" placeholder="Title, artist, duration">
+            </label>
+          </div>
+          <div class="table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>
+                    <input id="selectAllTracks" type="checkbox" aria-label="Select visible tracks">
+                  </th>
+                  <th>#</th>
+                  <th>Title</th>
+                  <th>Artists</th>
+                  <th>Meta</th>
+                  <th>Duration</th>
+                </tr>
+              </thead>
+              <tbody id="tracksTable">
+                <tr>
+                  <td colspan="6" class="empty-state">No tracks loaded yet.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/app.js"></script>
+  </body>
+</html>
