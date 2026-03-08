@@ -58,6 +58,8 @@ Or double-click:
 
 `run-liked-music-studio.cmd`
 
+The Windows launcher creates `.venv` automatically if needed, installs `requirements.txt`, and then starts the app.
+
 ### macOS
 
 ```bash
@@ -72,6 +74,8 @@ Or make the launcher executable once and then open it:
 chmod +x run-liked-music-studio.command
 ./run-liked-music-studio.command
 ```
+
+The macOS launcher does the same setup automatically: it creates `.venv` when missing, installs `requirements.txt`, and starts the app.
 
 The app opens at:
 
