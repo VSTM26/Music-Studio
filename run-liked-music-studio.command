@@ -28,6 +28,9 @@ if [ ! -x "$venv_python" ]; then
   venv_python=".venv/bin/python"
 fi
 
+echo "Checking for updates..."
+"$venv_python" -m liked_music_studio.updater
+
 echo "Installing dependencies..."
 "$venv_python" -m pip install -r requirements.txt
 

@@ -33,6 +33,14 @@ if not exist ".venv\Scripts\python.exe" (
   )
 )
 
+echo Checking for updates...
+".venv\Scripts\python.exe" -m liked_music_studio.updater
+if errorlevel 1 (
+  echo Auto-update failed.
+  pause
+  exit /b 1
+)
+
 echo Installing dependencies...
 ".venv\Scripts\python.exe" -m pip install -r requirements.txt
 if errorlevel 1 (

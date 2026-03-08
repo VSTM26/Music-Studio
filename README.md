@@ -8,6 +8,7 @@ Music-Studio is a local Python app for Windows and macOS that helps people:
 - export the results into `txt`, `csv`, and `json`
 - optionally download all or only selected YouTube Music tracks with `yt-dlp`
 - optionally extract MP3 audio through `ffmpeg`
+- auto-update from GitHub on launch so users can pick up new releases without manually re-downloading the repo
 
 The app runs fully on the user's machine. It does not use personal API keys for exporting either source. The Python dependencies install `yt-dlp` and a bundled ffmpeg fallback automatically.
 
@@ -59,6 +60,7 @@ Or double-click:
 `run-liked-music-studio.cmd`
 
 The Windows launcher creates `.venv` automatically if needed, installs `requirements.txt`, and then starts the app.
+It also checks GitHub for updates first and pulls in the newest files automatically.
 
 ### macOS
 
@@ -76,12 +78,14 @@ chmod +x run-liked-music-studio.command
 ```
 
 The macOS launcher does the same setup automatically: it creates `.venv` when missing, installs `requirements.txt`, and starts the app.
+It also checks GitHub for updates first and pulls in the newest files automatically.
 
 The app opens at:
 
 `http://127.0.0.1:4173`
 
 If a user skips `pip install -r requirements.txt` and launches the app directly with `python main.py`, the app now tries to install missing Python dependencies automatically on first run.
+If they use the launchers, the app also checks GitHub on startup and updates itself before launching.
 
 ## How to use it
 
@@ -117,4 +121,6 @@ If a user skips `pip install -r requirements.txt` and launches the app directly 
 - Some YouTube Music playlist counts do not perfectly match what the live browser session exposes while scrolling. The app keeps both the reported count and the exported count so the result stays honest.
 - Spotify support in this repo is metadata export only. It does not try to download audio from Spotify.
 - `yt-dlp` is installed through `requirements.txt`. MP3 extraction can use either a system `ffmpeg` or the bundled `imageio-ffmpeg` fallback.
+- ZIP installs update by downloading the latest GitHub branch archive and replacing the managed app files while preserving `.venv`, `output`, and `runtime`. Git clones use `git pull --ff-only` when the checkout is clean.
+- Set `MUSIC_STUDIO_SKIP_UPDATE=1` before launch if you ever need to skip the auto-updater for troubleshooting.
 - On macOS, the app looks for Chrome in both `/Applications` and `~/Applications`. You can always override that with `CHROME_PATH`.
