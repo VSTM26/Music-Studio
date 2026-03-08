@@ -41,6 +41,11 @@ def download_tracks(
     extract_audio: bool,
     log: Callable[[str, str], None],
 ) -> Path:
+    if any(track.get("sourcePlatform") != "ytmusic" for track in tracks):
+        raise RuntimeError(
+            "Downloads are only supported for YouTube Music exports. Spotify exports stay metadata-only."
+        )
+
     urls = [track.get("url") for track in tracks if isinstance(track.get("url"), str) and track["url"]]
     if not urls:
         raise RuntimeError("No downloadable YouTube URLs were found in the selected tracks.")
@@ -65,7 +70,6 @@ def download_tracks(
     command = _resolve_yt_dlp_command() + [
         "--newline",
         "--ignore-errors",
-        "--windows-filenames",
         "--no-warnings",
         "--paths",
         str(downloads_dir),

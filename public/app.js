@@ -1,3 +1,8 @@
+const DEFAULT_SOURCE_LABELS = {
+  ytmusic: 'YouTube Music',
+  spotify: 'Spotify',
+};
+
 const state = {
   status: null,
   results: null,
@@ -6,6 +11,8 @@ const state = {
 };
 
 const elements = {
+  sourceYtMusicBtn: document.querySelector('#sourceYtMusicBtn'),
+  sourceSpotifyBtn: document.querySelector('#sourceSpotifyBtn'),
   chooseFolderBtn: document.querySelector('#chooseFolderBtn'),
   launchBrowserBtn: document.querySelector('#launchBrowserBtn'),
   runExportBtn: document.querySelector('#runExportBtn'),
@@ -61,24 +68,6 @@ function formatBytes(value) {
   return `${(value / (1024 * 1024)).toFixed(2)} MB`;
 }
 
-async function fetchJson(url, options = {}) {
-  const requestOptions = {
-    headers: {
-      Accept: 'application/json',
-      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
-      ...(options.headers || {}),
-    },
-    ...options,
-  };
-
-  const response = await fetch(url, requestOptions);
-  const payload = await response.json().catch(() => ({}));
-  if (!response.ok) {
-    throw new Error(payload.message || `Request failed: ${response.status}`);
-  }
-  return payload;
-}
-
 function escapeHtml(value) {
   return String(value)
     .replaceAll('&', '&amp;')
@@ -87,8 +76,32 @@ function escapeHtml(value) {
     .replaceAll('"', '&quot;');
 }
 
+function getSourceLabel(source) {
+  return state.status?.sources?.labels?.[source] || DEFAULT_SOURCE_LABELS[source] || source;
+}
+
+function getActiveSource() {
+  return state.status?.sources?.active || 'ytmusic';
+}
+
+function getCurrentResultsSource() {
+  return state.results?.sourcePlatform || state.status?.latestExport?.sourcePlatform || null;
+}
+
+function getLaunchLabel() {
+  return `Open Guided Chrome for ${getSourceLabel(getActiveSource())}`;
+}
+
+function getExportLabel() {
+  return getActiveSource() === 'spotify' ? 'Export Spotify Likes' : 'Export YouTube Likes';
+}
+
 function getTracks() {
   return state.results?.tracks || [];
+}
+
+function downloadsSupported() {
+  return Boolean(state.results?.downloadSupported ?? state.status?.latestExport?.downloadSupported);
 }
 
 function getFilteredTracks() {
@@ -99,7 +112,7 @@ function getFilteredTracks() {
   }
 
   return tracks.filter((track) =>
-    [track.title, track.artists, track.meta, track.duration]
+    [track.title, track.artists, track.album, track.meta, track.duration]
       .filter(Boolean)
       .some((value) => value.toLowerCase().includes(search)),
   );
@@ -118,11 +131,48 @@ function trimSelection() {
   }
 }
 
+async function fetchJson(url, options = {}) {
+  const requestOptions = {
+    headers: {
+      Accept: 'application/json',
+      ...(options.body ? { 'Content-Type': 'application/json' } : {}),
+      ...(options.headers || {}),
+    },
+    ...options,
+  };
+
+  const response = await fetch(url, requestOptions);
+  const payload = await response.json().catch(() => ({}));
+  if (!response.ok) {
+    throw new Error(payload.message || `Request failed: ${response.status}`);
+  }
+  return payload;
+}
+
+function renderSourceControls() {
+  const activeSource = getActiveSource();
+  elements.sourceYtMusicBtn.classList.toggle('is-active', activeSource === 'ytmusic');
+  elements.sourceSpotifyBtn.classList.toggle('is-active', activeSource === 'spotify');
+  elements.launchBrowserBtn.textContent = getLaunchLabel();
+  elements.runExportBtn.textContent = getExportLabel();
+}
+
 function renderStatus() {
   const { status } = state;
   if (!status) {
     return;
   }
+
+  const activeSource = getActiveSource();
+  const activeSourceLabel = getSourceLabel(activeSource);
+  const activeSourceTabOpen = activeSource === 'spotify'
+    ? status.debug.spotifyTabOpen
+    : status.debug.ytmusicTabOpen;
+  const activeSourceTabTitle = activeSource === 'spotify'
+    ? status.debug.spotifyTabTitle
+    : status.debug.ytmusicTabTitle;
+
+  renderSourceControls();
 
   elements.chromeStatus.textContent = status.chrome.found ? 'Ready' : 'Missing';
   elements.chromeDetail.textContent = status.chrome.found
@@ -131,10 +181,10 @@ function renderStatus() {
 
   elements.debugStatus.textContent = status.debug.connected ? 'Connected' : 'Offline';
   elements.debugDetail.textContent = status.debug.connected
-    ? status.debug.musicTabOpen
-      ? `${status.debug.browser || 'Chrome'} | ${status.debug.musicTabTitle || 'YouTube Music tab open'}`
-      : `${status.debug.browser || 'Chrome'} | Open the Guided Chrome window and sign in.`
-    : 'No Chrome DevTools session is listening on port 9224 yet.';
+    ? activeSourceTabOpen
+      ? `${status.debug.browser || 'Chrome'} | ${activeSourceTabTitle || `${activeSourceLabel} tab open`}`
+      : `${status.debug.browser || 'Chrome'} | Open Guided Chrome and sign in to ${activeSourceLabel}.`
+    : 'No Chrome DevTools session is listening on the local debug port yet.';
 
   elements.exportStatus.textContent = status.export.running ? 'Running' : 'Idle';
   elements.exportDetail.textContent = status.export.running
@@ -147,11 +197,12 @@ function renderStatus() {
   }
 
   if (status.latestExport) {
-    elements.resultStatus.textContent = `${formatNumber(status.latestExport.exportedCount)} songs exported`;
-    elements.resultDetail.textContent = `Saved ${formatTime(status.latestExport.exportedAt)} from ${status.latestExport.title || 'Liked Music'}`;
+    const exportSourceLabel = status.latestExport.sourceLabel || getSourceLabel(status.latestExport.sourcePlatform);
+    elements.resultStatus.textContent = `${formatNumber(status.latestExport.exportedCount)} ${exportSourceLabel} tracks exported`;
+    elements.resultDetail.textContent = `Saved ${formatTime(status.latestExport.exportedAt)} from ${status.latestExport.title || exportSourceLabel}`;
   } else {
     elements.resultStatus.textContent = 'No export yet';
-    elements.resultDetail.textContent = 'Run the exporter after signing in to YouTube Music.';
+    elements.resultDetail.textContent = `Run the exporter after signing in to ${activeSourceLabel}.`;
   }
 
   elements.downloadStatus.textContent = status.download.running ? 'Running' : 'Idle';
@@ -172,13 +223,11 @@ function renderStatus() {
       : 'Media ready'
     : 'Downloads unavailable';
   elements.toolDetail.textContent = ytDlpAvailable
-    ? ffmpegAvailable
-      ? 'yt-dlp and ffmpeg are available for full downloads and MP3 extraction.'
-      : 'yt-dlp is available. Install ffmpeg if you want MP3 extraction.'
-    : 'Run pip install -r requirements.txt to enable yt-dlp downloads.';
+    ? `${ffmpegAvailable ? 'yt-dlp and ffmpeg are available for YouTube-based downloads.' : 'yt-dlp is available. Install ffmpeg if you want MP3 extraction.'} Exports use the signed-in browser session only, not API keys.`
+    : 'Run pip install -r requirements.txt to enable yt-dlp downloads. Exports themselves do not use API keys.';
 
   elements.outputFolderStatus.textContent = status.output?.directory || 'Using the project output folder';
-  elements.outputFolderDetail.textContent = `Exports save here, and media downloads go into ${status.output?.downloadsDirectory || ''}`;
+  elements.outputFolderDetail.textContent = `Exports save here, and YouTube media downloads go into ${status.output?.downloadsDirectory || ''}`;
 
   syncActionButtons();
 }
@@ -214,16 +263,17 @@ function renderSummary() {
 
   const mismatch =
     typeof latest.mismatchCount === 'number' && latest.mismatchCount > 0;
+  const sourceLabel = latest.sourceLabel || getSourceLabel(latest.sourcePlatform);
   elements.summaryBanner.className = `summary-banner${mismatch ? ' warning' : ''}`;
   elements.summaryBanner.innerHTML = mismatch
     ? `
-      <strong>${formatNumber(latest.exportedCount)}</strong> songs were exported, while the
-      playlist header reported <strong>${formatNumber(latest.reportedTrackCount)}</strong>.
+      <strong>${formatNumber(latest.exportedCount)}</strong> ${escapeHtml(sourceLabel)} tracks were exported, while the
+      page reported <strong>${formatNumber(latest.reportedTrackCount)}</strong>.
       The app keeps both numbers so you can see the mismatch instead of hiding it.
     `
     : `
-      Export completed with <strong>${formatNumber(latest.exportedCount)}</strong> songs from
-      <strong>${escapeHtml(latest.title || 'Liked Music')}</strong>.
+      Export completed with <strong>${formatNumber(latest.exportedCount)}</strong> tracks from
+      <strong>${escapeHtml(latest.title || sourceLabel)}</strong>.
     `;
 }
 
@@ -253,10 +303,15 @@ function renderSelectionSummary() {
   const tracks = getTracks();
   const filtered = getFilteredTracks();
   const selectedCount = state.selectedKeys.size;
+  const resultsSource = getCurrentResultsSource();
+  const resultsSourceLabel = resultsSource ? getSourceLabel(resultsSource) : getSourceLabel(getActiveSource());
 
   if (!tracks.length) {
     elements.selectionSummary.textContent =
-      'Export tracks first, then select the songs you want from the table below.';
+      `Export ${resultsSourceLabel} tracks first, then select the songs you want from the table below.`;
+  } else if (!downloadsSupported()) {
+    elements.selectionSummary.textContent =
+      `${resultsSourceLabel} exports are metadata-only here. Download controls stay disabled for this source.`;
   } else if (!selectedCount) {
     elements.selectionSummary.textContent =
       `Showing ${formatNumber(filtered.length)} of ${formatNumber(tracks.length)} exported tracks. Download All uses every exported song.`;
@@ -326,10 +381,10 @@ function renderTracks() {
                   : escapeHtml(track.title || '')
               }
             </strong>
-            <span class="track-meta">${escapeHtml(track.videoType || '')}</span>
+            <span class="track-meta">${escapeHtml(track.trackType || track.videoType || track.sourceLabel || '')}</span>
           </td>
           <td>${escapeHtml(track.artists || '')}</td>
-          <td>${escapeHtml(track.meta || '')}</td>
+          <td>${escapeHtml(track.meta || track.album || '')}</td>
           <td>${escapeHtml(track.duration || '')}</td>
         </tr>
       `,
@@ -346,16 +401,21 @@ function syncActionButtons() {
   const ytDlpAvailable = Boolean(state.status?.tools?.ytDlp?.available);
   const tracks = getTracks();
   const hasSelection = state.selectedKeys.size > 0;
+  const canDownload = downloadsSupported();
 
   elements.chooseFolderBtn.disabled = exportRunning || downloadRunning;
   elements.launchBrowserBtn.disabled = exportRunning;
   elements.runExportBtn.disabled = exportRunning;
   elements.resetSessionBtn.disabled = exportRunning;
   elements.downloadSelectedBtn.disabled =
-    exportRunning || downloadRunning || !ytDlpAvailable || !hasSelection;
+    exportRunning || downloadRunning || !ytDlpAvailable || !hasSelection || !canDownload;
   elements.downloadAllBtn.disabled =
-    exportRunning || downloadRunning || !ytDlpAvailable || tracks.length === 0;
+    exportRunning || downloadRunning || !ytDlpAvailable || tracks.length === 0 || !canDownload;
   elements.clearSelectionBtn.disabled = !hasSelection;
+  elements.extractAudio.disabled = exportRunning || downloadRunning || !canDownload;
+  if (!canDownload) {
+    elements.extractAudio.checked = false;
+  }
 }
 
 async function loadResults() {
@@ -393,9 +453,13 @@ async function refreshStatus() {
   }
 }
 
+function resolveLabel(label) {
+  return typeof label === 'function' ? label() : label;
+}
+
 async function invokeAction(url, button, idleLabel, busyLabel, body) {
   button.disabled = true;
-  button.textContent = busyLabel;
+  button.textContent = resolveLabel(busyLabel);
 
   try {
     await fetchJson(url, {
@@ -410,10 +474,35 @@ async function invokeAction(url, button, idleLabel, busyLabel, body) {
     alert(error instanceof Error ? error.message : String(error));
   } finally {
     button.disabled = false;
-    button.textContent = idleLabel;
+    button.textContent = resolveLabel(idleLabel);
     syncActionButtons();
   }
 }
+
+async function setSource(source) {
+  elements.sourceYtMusicBtn.disabled = true;
+  elements.sourceSpotifyBtn.disabled = true;
+  try {
+    await fetchJson('/api/source', {
+      method: 'POST',
+      body: JSON.stringify({ source }),
+    });
+    await refreshStatus();
+  } catch (error) {
+    alert(error instanceof Error ? error.message : String(error));
+  } finally {
+    elements.sourceYtMusicBtn.disabled = false;
+    elements.sourceSpotifyBtn.disabled = false;
+  }
+}
+
+elements.sourceYtMusicBtn.addEventListener('click', () => {
+  setSource('ytmusic');
+});
+
+elements.sourceSpotifyBtn.addEventListener('click', () => {
+  setSource('spotify');
+});
 
 elements.chooseFolderBtn.addEventListener('click', () => {
   invokeAction(
@@ -428,13 +517,18 @@ elements.launchBrowserBtn.addEventListener('click', () => {
   invokeAction(
     '/api/launch-browser',
     elements.launchBrowserBtn,
-    'Open Guided Chrome',
-    'Opening...',
+    getLaunchLabel,
+    () => `Opening ${getSourceLabel(getActiveSource())}...`,
   );
 });
 
 elements.runExportBtn.addEventListener('click', () => {
-  invokeAction('/api/export', elements.runExportBtn, 'Run Export', 'Starting...');
+  invokeAction(
+    '/api/export',
+    elements.runExportBtn,
+    getExportLabel,
+    () => `Exporting ${getSourceLabel(getActiveSource())}...`,
+  );
 });
 
 elements.resetSessionBtn.addEventListener('click', () => {

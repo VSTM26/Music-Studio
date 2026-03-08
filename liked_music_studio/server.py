@@ -17,7 +17,13 @@ from typing import Any
 from urllib.parse import unquote, urlparse
 
 from . import APP_NAME, APP_VERSION
-from .devtools import ChromeDebugError, get_debug_status, scrape_liked_music
+from .devtools import (
+    ChromeDebugError,
+    SOURCE_LABELS,
+    SOURCE_URLS,
+    get_debug_status,
+    scrape_source,
+)
 from .downloader import download_tracks, get_tool_status
 from .exports import load_latest_results, load_manifest, write_exports
 
@@ -27,7 +33,6 @@ PUBLIC_DIR = BASE_DIR / "public"
 DEFAULT_OUTPUT_DIR = BASE_DIR / "output"
 RUNTIME_DIR = BASE_DIR / "runtime"
 CHROME_PROFILE_DIR = RUNTIME_DIR / "chrome-profile"
-PLAYLIST_URL = "https://music.youtube.com/playlist?list=LM"
 APP_HOST = os.environ.get("APP_HOST", "127.0.0.1")
 DEBUG_HOST = os.environ.get("YTMUSIC_DEBUG_HOST", "127.0.0.1")
 PORT = int(os.environ.get("PORT", "4173"))
@@ -57,6 +62,7 @@ class StudioState:
         self.export = JobState()
         self.download = JobState()
         self.output_dir = DEFAULT_OUTPUT_DIR
+        self.active_source = "ytmusic"
         self.output_dir.mkdir(parents=True, exist_ok=True)
         RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -105,6 +111,7 @@ class StudioState:
             export_state = JobState(**self.export.__dict__)
             download_state = JobState(**self.download.__dict__)
             logs = list(self.logs)
+            active_source = self.active_source
 
         chrome_path = self.get_chrome_path()
         return {
@@ -113,6 +120,14 @@ class StudioState:
                 "version": APP_VERSION,
                 "port": PORT,
                 "url": APP_URL,
+            },
+            "sources": {
+                "active": active_source,
+                "labels": SOURCE_LABELS,
+            },
+            "privacy": {
+                "usesApiKeys": False,
+                "browserSessionOnly": True,
             },
             "chrome": {
                 "found": bool(chrome_path),
@@ -135,6 +150,8 @@ class StudioState:
         manifest = load_manifest(self.output_dir)
         if not manifest:
             return None
+        source_platform = str(manifest.get("sourcePlatform") or "").strip() or "ytmusic"
+        source_label = str(manifest.get("sourceLabel") or "").strip() or SOURCE_LABELS[source_platform]
         files = []
         for file_info in manifest.get("files", []):
             if not isinstance(file_info, dict):
@@ -151,6 +168,13 @@ class StudioState:
             )
         return {
             "title": manifest.get("title"),
+            "sourcePlatform": source_platform,
+            "sourceLabel": source_label,
+            "downloadSupported": bool(
+                manifest.get("downloadSupported")
+                if "downloadSupported" in manifest
+                else source_platform == "ytmusic"
+            ),
             "exportedAt": manifest.get("exportedAt"),
             "reportedTrackCount": manifest.get("reportedTrackCount"),
             "exportedCount": manifest.get("exportedCount"),
@@ -162,10 +186,22 @@ class StudioState:
     def get_results(self) -> dict[str, Any] | None:
         return load_latest_results(self.output_dir)
 
+    def set_source(self, source: str) -> None:
+        if source not in SOURCE_LABELS:
+            raise RuntimeError("Unsupported export source.")
+        with self.lock:
+            self.active_source = source
+        self.add_log(f"Switched source to {SOURCE_LABELS[source]}.", "info")
+
     def launch_guided_chrome(self) -> str:
         chrome_path = self.get_chrome_path()
         if not chrome_path:
             raise RuntimeError("Chrome was not found. Install Chrome or set CHROME_PATH.")
+
+        with self.lock:
+            source = self.active_source
+        source_label = SOURCE_LABELS[source]
+        source_url = SOURCE_URLS[source]
 
         CHROME_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
         args = [
@@ -175,9 +211,8 @@ class StudioState:
             "--new-window",
             "--disable-first-run-ui",
             "--no-default-browser-check",
-            PLAYLIST_URL,
+            source_url,
         ]
-        creationflags = 0
         popen_kwargs: dict[str, Any] = {
             "stdout": subprocess.DEVNULL,
             "stderr": subprocess.DEVNULL,
@@ -192,7 +227,7 @@ class StudioState:
         else:
             popen_kwargs["start_new_session"] = True
         subprocess.Popen(args, **popen_kwargs)
-        self.add_log("Opened Guided Chrome on the YouTube Music Liked Music playlist.", "success")
+        self.add_log(f"Opened Guided Chrome on {source_label}.", "success")
         return chrome_path
 
     def reset_guided_session(self) -> None:
@@ -241,25 +276,30 @@ class StudioState:
             self.export.last_error = None
             self.export.last_exit_code = None
             self.export.requested_count = None
-            self.export.mode = "liked-music"
+            self.export.mode = self.active_source
         threading.Thread(target=self._run_export_job, daemon=True).start()
 
     def _run_export_job(self) -> None:
-        self.add_log("Starting the browser scrape for Liked Music.", "info")
+        with self.lock:
+            source = self.active_source
+        source_label = SOURCE_LABELS[source]
+        self.add_log(f"Starting the browser scrape for {source_label}.", "info")
         try:
-            scrape_result = scrape_liked_music(DEBUG_HOST, DEBUG_PORT, self.add_log)
+            scrape_result = scrape_source(source, DEBUG_HOST, DEBUG_PORT, self.add_log)
             manifest = write_exports(
                 self.output_dir,
+                scrape_result.source_platform,
                 scrape_result.playlist_title,
                 scrape_result.reported_count,
                 scrape_result.songs,
+                scrape_result.download_supported,
             )
             with self.lock:
                 self.export.running = False
                 self.export.last_finished_at = _utc_now()
                 self.export.last_exit_code = 0
             self.add_log(
-                f"Export finished with {manifest['exportedCount']} tracks in {self.output_dir}.",
+                f"{scrape_result.source_label} export finished with {manifest['exportedCount']} tracks in {self.output_dir}.",
                 "success",
             )
         except Exception as error:
@@ -273,7 +313,11 @@ class StudioState:
     def start_download(self, track_keys: list[str] | None, extract_audio: bool) -> None:
         results = self.get_results()
         if not results:
-            raise RuntimeError("Run an export first so the app knows which liked tracks to download.")
+            raise RuntimeError("Run an export first so the app knows which tracks are available.")
+        if not results.get("downloadSupported"):
+            raise RuntimeError(
+                "This export source is metadata-only here. Downloads are only available for YouTube Music exports."
+            )
 
         tracks = list(results.get("tracks") or [])
         if track_keys:
@@ -325,7 +369,7 @@ class StudioState:
 
 
 class StudioHandler(BaseHTTPRequestHandler):
-    server_version = "LikedMusicStudio/0.2"
+    server_version = "LikedMusicStudio/0.3"
 
     def __init__(self, *args: Any, state: StudioState, **kwargs: Any) -> None:
         self.state = state
@@ -355,6 +399,14 @@ class StudioHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         body = self._read_json()
         try:
+            if path == "/api/source":
+                source = str(body.get("source") or "")
+                self.state.set_source(source)
+                self._send_json(
+                    HTTPStatus.OK,
+                    {"ok": True, "message": "Source updated.", "source": source},
+                )
+                return
             if path == "/api/launch-browser":
                 chrome_path = self.state.launch_guided_chrome()
                 self._send_json(
@@ -484,6 +536,7 @@ def main() -> None:
     handler = partial(StudioHandler, state=state)
     server = ThreadingHTTPServer((APP_HOST, PORT), handler)
     state.add_log(f"{APP_NAME} is running at {APP_URL}", "success")
+    state.add_log("Both YouTube Music and Spotify exports use the local browser session, not API keys.", "info")
     print(f"{APP_NAME} is running at {APP_URL}")
     _open_app()
     try:

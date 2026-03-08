@@ -3,7 +3,7 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Liked Music Studio</title>
+    <title>Music Studio</title>
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
@@ -13,15 +13,19 @@
 
       <header class="hero panel">
         <div class="hero-copy">
-          <p class="eyebrow">YouTube Music Export Workspace</p>
-          <h1>Liked Music Studio</h1>
+          <p class="eyebrow">YouTube Music + Spotify Export Workspace</p>
+          <h1>Music Studio</h1>
+          <div class="source-switch" role="tablist" aria-label="Music source">
+            <button id="sourceYtMusicBtn" class="source-pill is-active" type="button">YouTube Music</button>
+            <button id="sourceSpotifyBtn" class="source-pill" type="button">Spotify</button>
+          </div>
           <p class="lede">
-            Launch a guided Chrome session, sign in to YouTube Music, and export your
-            liked songs into shareable <code>.txt</code>, <code>.csv</code>, and
-            <code>.json</code> files. Then optionally download all or only the tracks
-            you select with <code>yt-dlp</code>, with optional MP3 extraction through
-            <code>ffmpeg</code>. The guided browser uses its own local profile, so any
-            user can log in with their own YouTube Music account.
+            Launch a guided Chrome session, sign in to either YouTube Music or Spotify,
+            and export your liked songs into shareable <code>.txt</code>,
+            <code>.csv</code>, and <code>.json</code> files. The app uses the live
+            browser session only, so it does not require your own API keys. Optional
+            downloads remain available for YouTube Music exports through
+            <code>yt-dlp</code> and <code>ffmpeg</code>.
           </p>
         </div>
 
@@ -44,13 +48,13 @@
               <span class="step-index">01</span>
               <div>
                 <h3>Open the guided browser</h3>
-                <p>We use a dedicated Chrome profile so the export can access a stable debug session.</p>
+                <p>We use a dedicated Chrome profile so the export can access a stable debug session for either source.</p>
               </div>
             </li>
             <li>
               <span class="step-index">02</span>
               <div>
-                <h3>Sign in to YouTube Music</h3>
+                <h3>Sign in to the selected source</h3>
                 <p>Sign in with your own account in the special Chrome window, then keep it open while exporting.</p>
               </div>
             </li>
@@ -58,7 +62,7 @@
               <span class="step-index">03</span>
               <div>
                 <h3>Run the export</h3>
-                <p>Results land in your selected save folder and are previewed below. Reset the guided session any time you want to switch accounts.</p>
+                <p>Results land in your selected save folder and are previewed below. Downloads stay enabled for YouTube Music exports only.</p>
               </div>
             </li>
           </ol>
@@ -146,6 +150,9 @@
           </label>
           <p id="selectionSummary" class="selection-summary">
             Export tracks first, then select the songs you want from the table below.
+          </p>
+          <p class="selection-summary subtle-note">
+            Spotify support here is export-only and uses the signed-in browser session, not your API keys.
           </p>
         </section>
 

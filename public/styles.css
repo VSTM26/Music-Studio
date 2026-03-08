@@ -114,6 +114,38 @@ code {
   margin: 0;
 }
 
+.source-switch {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 10px;
+  margin: 0 0 1.1rem;
+}
+
+.source-pill {
+  border: 1px solid rgba(19, 33, 38, 0.12);
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.56);
+  color: var(--ink);
+  padding: 0.72rem 1rem;
+  cursor: pointer;
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+  transition:
+    transform 180ms ease,
+    background 180ms ease,
+    color 180ms ease,
+    box-shadow 180ms ease;
+}
+
+.source-pill:hover {
+  transform: translateY(-1px);
+}
+
+.source-pill.is-active {
+  background: linear-gradient(135deg, rgba(31, 105, 102, 0.96), rgba(44, 140, 134, 0.92));
+  color: #f3fffd;
+  box-shadow: 0 12px 24px rgba(19, 33, 38, 0.14);
+}
+
 .hero-actions {
   display: flex;
   flex-direction: column;
@@ -359,6 +391,10 @@ code {
   margin: 14px 0 0;
   color: rgba(19, 33, 38, 0.76);
   line-height: 1.55;
+}
+
+.subtle-note {
+  color: rgba(19, 33, 38, 0.62);
 }
 
 .logs {
