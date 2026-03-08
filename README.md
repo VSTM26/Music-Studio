@@ -9,14 +9,14 @@ Music-Studio is a local Python app for Windows and macOS that helps people:
 - optionally download all or only selected YouTube Music tracks with `yt-dlp`
 - optionally extract MP3 audio through `ffmpeg`
 
-The app runs fully on the user's machine. It does not use personal API keys for exporting either source.
+The app runs fully on the user's machine. It does not use personal API keys for exporting either source. The Python dependencies install `yt-dlp` and a bundled ffmpeg fallback automatically.
 
 ## Requirements
 
 - Windows or macOS
 - Python 3.11 or newer
 - Google Chrome
-- `ffmpeg` on `PATH` if you want MP3 extraction
+- Internet access the first time dependencies are installed
 
 ## Install
 
@@ -38,7 +38,7 @@ source .venv/bin/activate
 pip install -r requirements.txt
 ```
 
-If you want MP3 extraction on macOS, install `ffmpeg` first:
+You can still install a system `ffmpeg` if you want, but the app can also fall back to the `imageio-ffmpeg` binary that comes in through `requirements.txt`:
 
 ```bash
 brew install ffmpeg
@@ -77,6 +77,8 @@ The app opens at:
 
 `http://127.0.0.1:4173`
 
+If a user skips `pip install -r requirements.txt` and launches the app directly with `python main.py`, the app now tries to install missing Python dependencies automatically on first run.
+
 ## How to use it
 
 1. Start the app.
@@ -110,5 +112,5 @@ The app opens at:
 - The scraper uses a dedicated Chrome profile in `runtime/chrome-profile` so different people can sign in locally without sharing credentials.
 - Some YouTube Music playlist counts do not perfectly match what the live browser session exposes while scrolling. The app keeps both the reported count and the exported count so the result stays honest.
 - Spotify support in this repo is metadata export only. It does not try to download audio from Spotify.
-- `yt-dlp` is installed through `requirements.txt`. `ffmpeg` still needs to be installed separately if you want MP3 extraction for YouTube-based downloads.
+- `yt-dlp` is installed through `requirements.txt`. MP3 extraction can use either a system `ffmpeg` or the bundled `imageio-ffmpeg` fallback.
 - On macOS, the app looks for Chrome in both `/Applications` and `~/Applications`. You can always override that with `CHROME_PATH`.

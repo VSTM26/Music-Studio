@@ -1,2 +1,3 @@
 websocket-client
 yt-dlp
+imageio-ffmpeg
