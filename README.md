@@ -1,6 +1,6 @@
-# Liked Music Studio
+# Music-Studio
 
-Liked Music Studio is a local Python app for Windows that helps people:
+Music-Studio is a local Python app for Windows that helps people:
 
 - open a guided Chrome session for YouTube Music
 - sign in with their own account
