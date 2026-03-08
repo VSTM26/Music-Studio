@@ -7,7 +7,7 @@ from typing import Any, Callable
 from urllib.error import HTTPError, URLError
 from urllib.request import urlopen
 
-from websocket import WebSocketTimeoutException, create_connection
+from websocket import WebSocketBadStatusException, WebSocketTimeoutException, create_connection
 
 
 YTMUSIC_PLAYLIST_URL = "https://music.youtube.com/playlist?list=LM"
@@ -103,7 +103,21 @@ class DevToolsConnection:
         ws_url = version.get("webSocketDebuggerUrl")
         if not isinstance(ws_url, str) or not ws_url:
             raise ChromeDebugError("Chrome did not provide a browser WebSocket URL.")
-        self._socket = create_connection(ws_url, timeout=timeout)
+        try:
+            self._socket = create_connection(
+                ws_url,
+                timeout=timeout,
+                origin=f"http://{host}:{port}",
+            )
+        except WebSocketBadStatusException as error:
+            if error.status_code == 403:
+                raise ChromeDebugError(
+                    "Chrome rejected the DevTools WebSocket handshake with HTTP 403. "
+                    "Close Guided Chrome and reopen it from this app so it starts with the required remote debugging flags."
+                ) from error
+            raise ChromeDebugError(
+                f"Chrome rejected the DevTools WebSocket handshake with HTTP {error.status_code}."
+            ) from error
         self._socket.settimeout(timeout)
         self._next_id = 1
 

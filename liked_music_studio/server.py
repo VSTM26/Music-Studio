@@ -44,6 +44,15 @@ def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
+def _build_remote_allow_origins(host: str, port: int) -> str:
+    hosts = {host.strip(), "127.0.0.1", "localhost"}
+    origins: list[str] = []
+    for item in sorted(candidate for candidate in hosts if candidate):
+        origins.append(f"http://{item}:{port}")
+        origins.append(f"ws://{item}:{port}")
+    return ",".join(origins)
+
+
 @dataclass
 class JobState:
     running: bool = False
@@ -207,6 +216,8 @@ class StudioState:
         args = [
             chrome_path,
             f"--remote-debugging-port={DEBUG_PORT}",
+            "--remote-debugging-address=127.0.0.1",
+            f"--remote-allow-origins={_build_remote_allow_origins(DEBUG_HOST, DEBUG_PORT)}",
             f"--user-data-dir={CHROME_PROFILE_DIR}",
             "--new-window",
             "--disable-first-run-ui",
