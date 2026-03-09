@@ -15,9 +15,6 @@ REQUIRED_MODULES = {
 
 
 def ensure_dependencies() -> None:
-    if getattr(sys, "frozen", False):
-        return
-
     missing = [
         package_name
         for package_name, module_name in REQUIRED_MODULES.items()

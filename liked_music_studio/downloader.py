@@ -7,10 +7,8 @@ from pathlib import Path
 from shutil import which
 from typing import Any, Callable
 
-from .paths import runtime_dir
-
-
-GUIDED_CHROME_PROFILE_DIR = runtime_dir() / "chrome-profile"
+BASE_DIR = Path(__file__).resolve().parents[1]
+GUIDED_CHROME_PROFILE_DIR = BASE_DIR / "runtime" / "chrome-profile"
 
 
 def _has_module(module_name: str) -> bool:
@@ -275,7 +273,7 @@ def download_tracks(
         from yt_dlp import YoutubeDL
     except Exception as error:
         raise RuntimeError(
-            "yt-dlp is not available inside this build yet. Run the launcher again so dependencies can install."
+            "yt-dlp is not available yet. Run the launcher again so dependencies can install."
         ) from error
 
     if any(track.get("sourcePlatform") != "ytmusic" for track in tracks):

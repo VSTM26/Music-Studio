@@ -14,10 +14,9 @@ output/
 runtime/
 downloads/
 
-# Packaging and build artifacts
+# Build artifacts
 build/
 dist/
-*.spec
 *.egg-info/
 .eggs/
 pip-wheel-metadata/

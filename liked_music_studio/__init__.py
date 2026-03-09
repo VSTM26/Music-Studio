@@ -1,7 +1,7 @@
 """Liked Music Studio package."""
 
 APP_NAME = "Liked Music Studio"
-APP_VERSION = "0.4.1"
+APP_VERSION = "0.4.2"
 APP_UPDATE_OWNER = "VSTM26"
 APP_UPDATE_REPO = "Music-Studio"
 APP_UPDATE_BRANCH = "main"

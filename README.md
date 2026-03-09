@@ -1,6 +1,6 @@
 # Music-Studio
 
-Music-Studio is a local desktop-style app for exporting liked songs from YouTube Music or Spotify with your own browser session.
+Music-Studio is a local Python app for exporting liked songs from YouTube Music or Spotify with your own browser session.
 
 It can:
 
@@ -10,10 +10,9 @@ It can:
 - export results into `txt`, `csv`, and `json`
 - optionally download all or selected YouTube Music tracks with `yt-dlp`
 - optionally extract MP3 audio through `ffmpeg`
-- auto-update source installs from GitHub
-- auto-update packaged release builds through the packaged launcher
+- auto-update source installs from GitHub when you use the repo launchers
 
-The app runs on the user's machine and does not use personal API keys.
+The app runs locally and does not use personal API keys.
 
 ## Platforms
 
@@ -21,28 +20,19 @@ The app runs on the user's machine and does not use personal API keys.
 - macOS
 - Linux
 
-## Fastest install
-
-If you want the simplest setup, use the packaged GitHub releases:
-
-- Start from the latest release page: [Music-Studio releases](https://github.com/VSTM26/Music-Studio/releases/latest)
-- Windows: download the `windows-x64` archive, extract it, then double-click `run-liked-music-studio.bat`
-- macOS Intel: download the `macos-x64` archive, extract it, then run `chmod +x run-liked-music-studio.command` once and open it
-- macOS Apple Silicon: download the `macos-arm64` archive, extract it, then run `chmod +x run-liked-music-studio.command` once and open it
-- Linux: download the `linux-x64` archive, extract it, then run `chmod +x run-liked-music-studio.sh` once and start it
-
-The packaged launchers check GitHub for newer releases and will run a newer cached build automatically when one exists.
-Use the packaged launcher instead of starting the raw binary directly if you want that auto-update behavior.
-
-## Source install
-
-Use the source install if you want to hack on the project or run it directly from the repo.
-
-### Requirements
+## Requirements
 
 - Python 3.11 or newer
 - Google Chrome
 - internet access the first time dependencies are installed
+
+## Get the source
+
+Clone the repo or download the source ZIP from GitHub:
+
+- Repo: [VSTM26/Music-Studio](https://github.com/VSTM26/Music-Studio)
+
+## Install and run
 
 ### Windows
 
@@ -98,12 +88,12 @@ chmod +x run-liked-music-studio.sh
 ./run-liked-music-studio.sh
 ```
 
-If you launch from source with one of the repo launchers, it creates `.venv` when needed, installs `requirements.txt`, and checks GitHub for updates first.
+If you use one of the repo launchers, it creates `.venv` when needed, installs `requirements.txt`, checks GitHub for updates, and then starts the app.
 
 ## How to use it
 
 1. Start the app.
-2. Click `Choose Save Folder` if you want exports somewhere other than the default folder.
+2. Click `Choose Save Folder` if you want exports somewhere other than the default `output` folder.
 3. Pick `YouTube Music` or `Spotify`.
 4. Click `Open Guided Chrome`.
 5. Sign in inside that guided Chrome window.
@@ -113,16 +103,16 @@ If you launch from source with one of the repo launchers, it creates `.venv` whe
 9. If the export came from YouTube Music, optionally select tracks or use `Download All Exported`.
 10. Turn on `Extract audio into MP3 files with ffmpeg` if you want audio-only output.
 
-## Output
+## Project folders
 
-- Export files are written into the selected save folder.
-- YouTube downloads go into a `downloads` subfolder inside that save folder.
-- The latest export manifest is stored as `latest-export.json`.
-- Packaged builds keep runtime data under the user data folder for that OS instead of inside the extracted app folder.
+- `output/` stores exports in the repo folder by default
+- `output/downloads/` stores YouTube downloads
+- `runtime/` stores the guided Chrome profile and updater state
+- `public/` contains the browser UI
 
 ## Notes
 
-- The scraper uses a dedicated Chrome profile so each person signs in locally with their own account.
+- The scraper uses a dedicated Chrome profile in `runtime/chrome-profile` so each person signs in locally with their own account.
 - YouTube downloads reuse that guided Chrome profile with browser cookies, which helps with sign-in-only or age-restricted videos.
 - Spotify support is metadata export only. It does not try to download Spotify audio.
 - `yt-dlp` installs through `requirements.txt`.
@@ -140,5 +130,4 @@ If you launch from source with one of the repo launchers, it creates `.venv` whe
 - `liked_music_studio/exports.py` - export file writers and manifest helpers
 - `liked_music_studio/downloader.py` - `yt-dlp` and `ffmpeg` download flow
 - `liked_music_studio/updater.py` - source install updater
-- `scripts/build_release.py` - packaged release builder
 - `public/` - browser UI

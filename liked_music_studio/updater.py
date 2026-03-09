@@ -25,11 +25,10 @@ from . import (
     APP_UPDATE_REPO,
     APP_VERSION,
 )
-from .paths import install_root, is_frozen, runtime_dir
 
 
-BASE_DIR = install_root()
-RUNTIME_DIR = runtime_dir()
+BASE_DIR = Path(__file__).resolve().parents[1]
+RUNTIME_DIR = BASE_DIR / "runtime"
 STATE_PATH = RUNTIME_DIR / "update-state.json"
 REQUEST_TIMEOUT = 12.0
 USER_AGENT = f"{APP_NAME.replace(' ', '-')}/{APP_VERSION}"
@@ -370,12 +369,6 @@ def _maybe_update_from_git(state: UpdateState) -> UpdateResult:
 def check_for_updates() -> UpdateResult:
     if os.environ.get("MUSIC_STUDIO_SKIP_UPDATE") == "1":
         return UpdateResult(status="skipped", message="Skipped auto-update because MUSIC_STUDIO_SKIP_UPDATE=1.")
-
-    if is_frozen():
-        return UpdateResult(
-            status="skipped",
-            message="Packaged builds update through the packaged launcher, which pulls newer GitHub releases automatically.",
-        )
 
     state = UpdateState.load()
 
