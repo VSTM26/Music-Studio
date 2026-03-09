@@ -20,6 +20,18 @@ SOURCE_LABELS = {
     "ytmusic": "YouTube Music",
     "spotify": "Spotify",
 }
+COOKIE_EXPORT_URLS = {
+    "ytmusic": [
+        "https://music.youtube.com/",
+        "https://www.youtube.com/",
+        "https://youtube.com/",
+        "https://accounts.google.com/",
+    ],
+    "spotify": [
+        "https://open.spotify.com/",
+        "https://accounts.spotify.com/",
+    ],
+}
 
 
 class ChromeDebugError(RuntimeError):
@@ -574,3 +586,33 @@ def scrape_source(
     if source == "spotify":
         return scrape_spotify_liked_songs(host, port, log)
     return scrape_youtube_liked_music(host, port, log)
+
+
+def export_source_cookies(
+    source: str,
+    host: str,
+    port: int,
+) -> list[dict[str, Any]]:
+    if source not in SOURCE_URLS:
+        raise ChromeDebugError("Unsupported cookie export source.")
+
+    connection = DevToolsConnection(host, port)
+    target_id: str | None = None
+
+    try:
+        target_id = connection.create_target(SOURCE_URLS[source])
+        session_id = connection.attach_to_target(target_id)
+        connection.send("Network.enable", session_id=session_id)
+        result = connection.send(
+            "Network.getCookies",
+            {"urls": COOKIE_EXPORT_URLS[source]},
+            session_id=session_id,
+        )
+        cookies = result.get("cookies")
+        if not isinstance(cookies, list):
+            raise ChromeDebugError("Chrome did not return browser cookies.")
+        return [cookie for cookie in cookies if isinstance(cookie, dict)]
+    finally:
+        if target_id:
+            connection.close_target(target_id)
+        connection.close()

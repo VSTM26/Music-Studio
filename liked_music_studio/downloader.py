@@ -10,9 +10,15 @@ from pathlib import Path
 from shutil import which
 from typing import Any, Callable
 
+from .devtools import ChromeDebugError, export_source_cookies
+
 BASE_DIR = Path(__file__).resolve().parents[1]
 GUIDED_CHROME_PROFILE_DIR = BASE_DIR / "runtime" / "chrome-profile"
 FFMPEG_TOOL_DIR = BASE_DIR / "runtime" / "tools" / "ffmpeg"
+COOKIE_EXPORT_DIR = BASE_DIR / "runtime" / "cookies"
+YTDLP_COOKIE_FILE = COOKIE_EXPORT_DIR / "ytmusic-cookies.txt"
+DEBUG_HOST = os.environ.get("YTMUSIC_DEBUG_HOST", "127.0.0.1")
+DEBUG_PORT = int(os.environ.get("YTMUSIC_DEBUG_PORT", "9224"))
 GITHUB_API_HEADERS = {
     "Accept": "application/vnd.github+json",
     "User-Agent": "Music-Studio",
@@ -285,27 +291,92 @@ def _has_guided_chrome_cookies(profile_dir: Path) -> bool:
     return any(candidate.exists() for candidate in cookie_candidates)
 
 
-def _build_cookie_arguments(log: Callable[[str, str], None]) -> list[str]:
+def _netscape_cookie_domain(cookie: dict[str, Any]) -> str:
+    domain = str(cookie.get("domain") or "").strip()
+    if not domain:
+        return domain
+    if bool(cookie.get("httpOnly")) and not domain.startswith("#HttpOnly_"):
+        return f"#HttpOnly_{domain}"
+    return domain
+
+
+def _cookie_domain_for_scope(domain: str) -> str:
+    return domain[len("#HttpOnly_") :] if domain.startswith("#HttpOnly_") else domain
+
+
+def _write_netscape_cookie_file(cookies: list[dict[str, Any]], destination: Path) -> Path:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    lines = [
+        "# Netscape HTTP Cookie File",
+        "# Exported by Music Studio from the Guided Chrome session.",
+    ]
+    for cookie in cookies:
+        name = str(cookie.get("name") or "").replace("\t", " ").replace("\r", " ").replace("\n", " ")
+        value = str(cookie.get("value") or "").replace("\t", " ").replace("\r", " ").replace("\n", " ")
+        domain = _netscape_cookie_domain(cookie)
+        if not name or not domain:
+            continue
+        include_subdomains = "TRUE" if _cookie_domain_for_scope(domain).startswith(".") else "FALSE"
+        path = str(cookie.get("path") or "/").replace("\t", " ").replace("\r", " ").replace("\n", " ")
+        secure = "TRUE" if bool(cookie.get("secure")) else "FALSE"
+        expires_raw = cookie.get("expires")
+        expires = str(max(int(float(expires_raw or 0)), 0))
+        lines.append(
+            "\t".join([domain, include_subdomains, path, secure, expires, name, value])
+        )
+    destination.write_text("\r\n".join(lines) + "\r\n", encoding="utf-8")
+    return destination
+
+
+def _export_guided_cookie_file(log: Callable[[str, str], None]) -> Path | None:
+    try:
+        cookies = export_source_cookies("ytmusic", DEBUG_HOST, DEBUG_PORT)
+    except ChromeDebugError as error:
+        log(
+            f"Guided Chrome cookie export was unavailable, so yt-dlp will fall back to direct browser cookies. {error}",
+            "info",
+        )
+        return None
+    except Exception as error:
+        log(
+            f"Guided Chrome cookie export failed unexpectedly, so yt-dlp will fall back to direct browser cookies. {error}",
+            "info",
+        )
+        return None
+
+    if not cookies:
+        log(
+            "Guided Chrome is connected, but no YouTube cookies were available yet. Sign in there first if a track needs authentication.",
+            "info",
+        )
+        return None
+
+    cookie_file = _write_netscape_cookie_file(cookies, YTDLP_COOKIE_FILE)
+    log(
+        "Exported cookies from the Guided Chrome session for yt-dlp, which avoids Chrome cookie database copy errors.",
+        "info",
+    )
+    return cookie_file
+
+
+def _build_cookie_options(log: Callable[[str, str], None]) -> dict[str, Any]:
+    cookie_file = _export_guided_cookie_file(log)
+    if cookie_file:
+        return {"cookiefile": str(cookie_file)}
+
     if not _has_guided_chrome_cookies(GUIDED_CHROME_PROFILE_DIR):
         log(
             "Guided Chrome cookies were not found yet. Public YouTube tracks may still download, "
             "but age-restricted or private videos need a signed-in Guided Chrome session.",
             "info",
         )
-        return []
+        return {}
 
     log(
-        "Using cookies from the Guided Chrome profile so yt-dlp can access signed-in YouTube playback.",
+        "Falling back to direct cookies from the Guided Chrome profile so yt-dlp can access signed-in YouTube playback.",
         "info",
     )
-    return ["--cookies-from-browser", f"chrome:{GUIDED_CHROME_PROFILE_DIR}"]
-
-
-def _build_cookie_settings(log: Callable[[str, str], None]) -> tuple[str, str, None, None] | None:
-    cookie_args = _build_cookie_arguments(log)
-    if not cookie_args:
-        return None
-    return ("chrome", str(GUIDED_CHROME_PROFILE_DIR), None, None)
+    return {"cookiesfrombrowser": ("chrome", str(GUIDED_CHROME_PROFILE_DIR), None, None)}
 
 
 class _YtDlpLogger:
@@ -336,6 +407,12 @@ class _YtDlpLogger:
             self._log(
                 "YouTube still wants an authenticated browser session. Reopen Guided Chrome from the app, "
                 "make sure you are signed in with the account that can view the track, and then retry the download.",
+                "error",
+            )
+        if "COULD NOT COPY CHROME COOKIE DATABASE" in upper or "FAILED TO LOAD COOKIES" in upper:
+            self._log(
+                "yt-dlp could not read Chrome's live cookie database. Music Studio will now prefer exported Guided Chrome cookies, "
+                "so restart the app and retry the download.",
                 "error",
             )
 
@@ -391,7 +468,7 @@ def download_tracks(
         raise RuntimeError("No downloadable YouTube URLs were found in the selected tracks.")
 
     ffmpeg_path = _ensure_audio_toolchain(log) if extract_audio else None
-    cookie_settings = _build_cookie_settings(log)
+    cookie_options = _build_cookie_options(log)
 
     downloads_dir = output_dir / "downloads"
     downloads_dir.mkdir(parents=True, exist_ok=True)
@@ -405,8 +482,7 @@ def download_tracks(
         "logger": logger,
         "progress_hooks": [_build_progress_hook(log)],
     }
-    if cookie_settings:
-        ydl_options["cookiesfrombrowser"] = cookie_settings
+    ydl_options.update(cookie_options)
     if extract_audio:
         ydl_options["ffmpeg_location"] = str(Path(ffmpeg_path).parent)
         ydl_options["postprocessors"] = [

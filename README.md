@@ -114,6 +114,7 @@ If you use one of the repo launchers, it creates `.venv` when needed, installs `
 
 - The scraper uses a dedicated Chrome profile in `runtime/chrome-profile` so each person signs in locally with their own account.
 - YouTube downloads reuse that guided Chrome profile with browser cookies, which helps with sign-in-only or age-restricted videos.
+- For YouTube downloads that need authentication, Music Studio first exports cookies from the Guided Chrome DevTools session into a `yt-dlp` cookie file so it does not depend on Chrome's locked cookie database.
 - Spotify support is metadata export only. It does not try to download Spotify audio.
 - `yt-dlp` installs through `requirements.txt`.
 - MP3 extraction can use a system `ffmpeg`, app-local portable `ffmpeg` + `ffprobe`, or the bundled `imageio-ffmpeg` fallback for download-only flows.
