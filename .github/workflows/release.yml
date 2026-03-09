@@ -21,7 +21,7 @@ jobs:
           - os: ubuntu-latest
             platform_id: linux-x64
             archive_format: tar.gz
-          - os: macos-13
+          - os: macos-15-intel
             platform_id: macos-x64
             archive_format: tar.gz
           - os: macos-14
