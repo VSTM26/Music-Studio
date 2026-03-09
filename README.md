@@ -116,8 +116,8 @@ If you use one of the repo launchers, it creates `.venv` when needed, installs `
 - YouTube downloads reuse that guided Chrome profile with browser cookies, which helps with sign-in-only or age-restricted videos.
 - Spotify support is metadata export only. It does not try to download Spotify audio.
 - `yt-dlp` installs through `requirements.txt`.
-- MP3 extraction can use a system `ffmpeg` or the bundled `imageio-ffmpeg` fallback.
-- If MP3 extraction is requested and `ffmpeg` or `ffprobe` is missing, the app tries to install a full FFmpeg toolchain with `winget` on Windows or `brew` on macOS.
+- MP3 extraction can use a system `ffmpeg`, app-local portable `ffmpeg` + `ffprobe`, or the bundled `imageio-ffmpeg` fallback for download-only flows.
+- If MP3 extraction is requested and `ffmpeg` or `ffprobe` is missing, the app first tries a full FFmpeg toolchain install with `winget` on Windows or `brew` on macOS, then falls back to downloading portable binaries into `runtime/tools/ffmpeg`.
 - If port `4173` is busy, the app automatically moves to the next open local port and logs the new URL.
 - On Linux, Chrome can be discovered as `google-chrome`, `google-chrome-stable`, `chromium`, or `chromium-browser`.
 - Set `MUSIC_STUDIO_SKIP_UPDATE=1` if you need to skip the source updater while troubleshooting.

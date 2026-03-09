@@ -1,14 +1,22 @@
 from __future__ import annotations
 
+import json
 import os
+import platform
 import subprocess
 import sys
+import urllib.request
 from pathlib import Path
 from shutil import which
 from typing import Any, Callable
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 GUIDED_CHROME_PROFILE_DIR = BASE_DIR / "runtime" / "chrome-profile"
+FFMPEG_TOOL_DIR = BASE_DIR / "runtime" / "tools" / "ffmpeg"
+GITHUB_API_HEADERS = {
+    "Accept": "application/vnd.github+json",
+    "User-Agent": "Music-Studio",
+}
 
 
 def _has_module(module_name: str) -> bool:
@@ -23,6 +31,10 @@ def _resolve_ffmpeg_path(require_binary: bool = False) -> tuple[str | None, str 
     system_path = which("ffmpeg")
     if system_path:
         return system_path, "system"
+
+    portable_path = _portable_binary_path("ffmpeg")
+    if portable_path.exists():
+        return str(portable_path), "portable"
 
     if _has_module("imageio_ffmpeg"):
         if not require_binary:
@@ -43,7 +55,96 @@ def _resolve_ffprobe_path() -> tuple[str | None, str | None]:
     system_path = which("ffprobe")
     if system_path:
         return system_path, "system"
+    portable_path = _portable_binary_path("ffprobe")
+    if portable_path.exists():
+        return str(portable_path), "portable"
     return None, None
+
+
+def _portable_binary_path(tool_name: str) -> Path:
+    suffix = ".exe" if os.name == "nt" else ""
+    return FFMPEG_TOOL_DIR / f"{tool_name}{suffix}"
+
+
+def _portable_asset_names() -> tuple[str, str] | None:
+    machine = platform.machine().lower()
+    if os.name == "nt":
+        if machine in {"amd64", "x86_64"}:
+            suffix = "win32-x64"
+        else:
+            return None
+    elif sys.platform == "darwin":
+        if machine in {"arm64", "aarch64"}:
+            suffix = "darwin-arm64"
+        elif machine in {"x86_64", "amd64"}:
+            suffix = "darwin-x64"
+        else:
+            return None
+    else:
+        if machine in {"x86_64", "amd64"}:
+            suffix = "linux-x64"
+        elif machine in {"arm64", "aarch64"}:
+            suffix = "linux-arm64"
+        elif machine.startswith("armv7") or machine == "arm":
+            suffix = "linux-arm"
+        else:
+            return None
+    return f"ffmpeg-{suffix}", f"ffprobe-{suffix}"
+
+
+def _download_to_path(url: str, destination: Path) -> None:
+    destination.parent.mkdir(parents=True, exist_ok=True)
+    temp_path = destination.with_name(f"{destination.name}.tmp")
+    request = urllib.request.Request(url, headers=GITHUB_API_HEADERS)
+    try:
+        with urllib.request.urlopen(request, timeout=120) as response, temp_path.open("wb") as handle:
+            while True:
+                chunk = response.read(1024 * 1024)
+                if not chunk:
+                    break
+                handle.write(chunk)
+        if os.name != "nt":
+            temp_path.chmod(0o755)
+        temp_path.replace(destination)
+    except Exception:
+        temp_path.unlink(missing_ok=True)
+        raise
+
+
+def _try_install_portable_ffmpeg(log: Callable[[str, str], None]) -> bool:
+    asset_names = _portable_asset_names()
+    if not asset_names:
+        log(
+            "Portable FFmpeg downloads are not available for this platform/architecture combination.",
+            "info",
+        )
+        return False
+
+    log(
+        "Trying a portable FFmpeg download into the app runtime folder so MP3 extraction can work without a separate install.",
+        "info",
+    )
+    try:
+        release_request = urllib.request.Request(
+            "https://api.github.com/repos/eugeneware/ffmpeg-static/releases/latest",
+            headers=GITHUB_API_HEADERS,
+        )
+        with urllib.request.urlopen(release_request, timeout=30) as response:
+            release_data = json.load(response)
+
+        assets = {asset.get("name"): asset.get("browser_download_url") for asset in release_data.get("assets", [])}
+        for tool_name, asset_name in zip(("ffmpeg", "ffprobe"), asset_names):
+            asset_url = assets.get(asset_name)
+            if not asset_url:
+                log(f"Portable asset `{asset_name}` was not found in the latest FFmpeg release.", "error")
+                return False
+            destination = _portable_binary_path(tool_name)
+            _download_to_path(str(asset_url), destination)
+            log(f"Installed portable {tool_name} at {destination}", "success")
+        return True
+    except Exception as error:
+        log(f"Portable FFmpeg download failed: {error}", "error")
+        return False
 
 
 def _run_install_command(
@@ -73,37 +174,41 @@ def _run_install_command(
 def _try_auto_install_ffmpeg(log: Callable[[str, str], None]) -> bool:
     if os.name == "nt":
         winget = which("winget")
-        if not winget:
-            return False
-        package_ids = ["yt-dlp.FFmpeg", "Gyan.FFmpeg.Essentials"]
-        for package_id in package_ids:
-            log(f"Trying to install FFmpeg automatically with winget package `{package_id}`.", "info")
-            command = [
-                winget,
-                "install",
-                "--id",
-                package_id,
-                "--exact",
-                "--silent",
-                "--disable-interactivity",
-                "--accept-package-agreements",
-                "--accept-source-agreements",
-                "--scope",
-                "user",
-                "--no-upgrade",
-            ]
-            if _run_install_command(command, log):
-                return True
-        return False
+        if winget:
+            package_ids = ["yt-dlp.FFmpeg", "Gyan.FFmpeg.Essentials"]
+            for package_id in package_ids:
+                log(f"Trying to install FFmpeg automatically with winget package `{package_id}`.", "info")
+                command = [
+                    winget,
+                    "install",
+                    "--id",
+                    package_id,
+                    "--exact",
+                    "--silent",
+                    "--disable-interactivity",
+                    "--accept-package-agreements",
+                    "--accept-source-agreements",
+                    "--scope",
+                    "user",
+                    "--no-upgrade",
+                ]
+                if _run_install_command(command, log):
+                    return True
+        else:
+            log("`winget` was not found, so the app will try a portable FFmpeg download instead.", "info")
+        return _try_install_portable_ffmpeg(log)
 
     if sys.platform == "darwin":
         brew = which("brew")
-        if not brew:
-            return False
-        log("Trying to install FFmpeg automatically with Homebrew.", "info")
-        return _run_install_command([brew, "install", "ffmpeg"], log)
+        if brew:
+            log("Trying to install FFmpeg automatically with Homebrew.", "info")
+            if _run_install_command([brew, "install", "ffmpeg"], log):
+                return True
+        else:
+            log("`brew` was not found, so the app will try a portable FFmpeg download instead.", "info")
+        return _try_install_portable_ffmpeg(log)
 
-    return False
+    return _try_install_portable_ffmpeg(log)
 
 
 def _ensure_audio_toolchain(log: Callable[[str, str], None]) -> str:
@@ -132,8 +237,8 @@ def _ensure_audio_toolchain(log: Callable[[str, str], None]) -> str:
             return ffmpeg_path
 
     raise RuntimeError(
-        "MP3 extraction needs both ffmpeg and ffprobe. Automatic install did not finish successfully. "
-        "On Windows, install FFmpeg with `winget install --id yt-dlp.FFmpeg --exact`. "
+        "MP3 extraction needs both ffmpeg and ffprobe. Music Studio tried automatic system install and a portable download, "
+        "but neither finished successfully. On Windows, install FFmpeg with `winget install --id yt-dlp.FFmpeg --exact`. "
         "On macOS, install it with `brew install ffmpeg`."
     )
 
@@ -161,7 +266,7 @@ def get_tool_status() -> dict[str, dict[str, Any]]:
         },
         "audioExtraction": {
             "available": bool(ffmpeg_path and ffprobe_path),
-            "mode": "system" if ffmpeg_mode == "system" and ffprobe_mode == "system" else None,
+            "mode": ffmpeg_mode if ffmpeg_mode == ffprobe_mode else ("mixed" if ffmpeg_path and ffprobe_path else None),
             "path": ffmpeg_path if ffmpeg_path and ffprobe_path else None,
         },
     }
