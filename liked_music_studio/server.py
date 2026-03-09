@@ -5,6 +5,7 @@ import mimetypes
 import os
 import shutil
 import subprocess
+import sys
 import threading
 import webbrowser
 from dataclasses import dataclass
@@ -50,6 +51,60 @@ def _build_remote_allow_origins(host: str, port: int) -> str:
         origins.append(f"http://{item}:{port}")
         origins.append(f"ws://{item}:{port}")
     return ",".join(origins)
+
+
+def _run_folder_picker(initial_dir: Path) -> str:
+    override = os.environ.get("MUSIC_STUDIO_PICKER_PATH")
+    if override:
+        selected = Path(override).expanduser()
+        if not selected.exists() or not selected.is_dir():
+            raise RuntimeError(
+                f"MUSIC_STUDIO_PICKER_PATH must point to an existing folder, got: {selected}"
+            )
+        return str(selected)
+
+    picker_script = """
+import sys
+
+try:
+    import tkinter as tk
+    from tkinter import filedialog
+except Exception as exc:
+    print(f"Folder picker is unavailable: {exc}", file=sys.stderr)
+    raise SystemExit(1)
+
+initial_dir = sys.argv[1] if len(sys.argv) > 1 else ""
+root = tk.Tk()
+root.withdraw()
+try:
+    root.attributes("-topmost", True)
+except Exception:
+    pass
+try:
+    selected = filedialog.askdirectory(
+        title="Choose a save folder for exports and downloads",
+        initialdir=initial_dir,
+        mustexist=True,
+    )
+finally:
+    root.destroy()
+
+print(selected or "")
+"""
+    completed = subprocess.run(
+        [sys.executable, "-c", picker_script, str(initial_dir)],
+        stdout=subprocess.PIPE,
+        stderr=subprocess.PIPE,
+        stdin=subprocess.DEVNULL,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        check=False,
+    )
+    if completed.returncode != 0:
+        message = (completed.stderr or completed.stdout).strip()
+        raise RuntimeError(message or "Folder picker failed to start.")
+    return completed.stdout.strip()
 
 
 @dataclass
@@ -258,24 +313,7 @@ class StudioState:
         self.add_log("Cleared the dedicated Chrome profile for the next sign-in.", "info")
 
     def select_output_directory(self) -> str:
-        try:
-            import tkinter as tk
-            from tkinter import filedialog
-        except Exception as error:
-            raise RuntimeError(f"Folder picker is unavailable: {error}") from error
-
-        root = tk.Tk()
-        root.withdraw()
-        try:
-            root.attributes("-topmost", True)
-        except Exception:
-            pass
-        selected = filedialog.askdirectory(
-            title="Choose a save folder for exports and downloads",
-            initialdir=str(self.output_dir),
-            mustexist=True,
-        )
-        root.destroy()
+        selected = _run_folder_picker(self.output_dir)
         if selected:
             self.output_dir = Path(selected)
             self.output_dir.mkdir(parents=True, exist_ok=True)
