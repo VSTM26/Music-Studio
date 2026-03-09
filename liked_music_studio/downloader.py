@@ -9,6 +9,10 @@ from shutil import which
 from typing import Any, Callable
 
 
+BASE_DIR = Path(__file__).resolve().parents[1]
+GUIDED_CHROME_PROFILE_DIR = BASE_DIR / "runtime" / "chrome-profile"
+
+
 def _resolve_ffmpeg_path(require_binary: bool = False) -> tuple[str | None, str | None]:
     system_path = which("ffmpeg")
     if system_path:
@@ -54,6 +58,36 @@ def _resolve_yt_dlp_command() -> list[str]:
     if command:
         return [command]
     raise RuntimeError("yt-dlp is not installed yet. Run `pip install -r requirements.txt` first.")
+
+
+def _has_guided_chrome_cookies(profile_dir: Path) -> bool:
+    if not profile_dir.exists():
+        return False
+    if (profile_dir / "Local State").exists():
+        return True
+    cookie_candidates = (
+        profile_dir / "Default" / "Cookies",
+        profile_dir / "Default" / "Network" / "Cookies",
+        profile_dir / "Profile 1" / "Cookies",
+        profile_dir / "Profile 1" / "Network" / "Cookies",
+    )
+    return any(candidate.exists() for candidate in cookie_candidates)
+
+
+def _build_cookie_arguments(log: Callable[[str, str], None]) -> list[str]:
+    if not _has_guided_chrome_cookies(GUIDED_CHROME_PROFILE_DIR):
+        log(
+            "Guided Chrome cookies were not found yet. Public YouTube tracks may still download, "
+            "but age-restricted or private videos need a signed-in Guided Chrome session.",
+            "info",
+        )
+        return []
+
+    log(
+        "Using cookies from the Guided Chrome profile so yt-dlp can access signed-in YouTube playback.",
+        "info",
+    )
+    return ["--cookies-from-browser", f"chrome:{GUIDED_CHROME_PROFILE_DIR}"]
 
 
 def download_tracks(
@@ -102,6 +136,7 @@ def download_tracks(
         "--batch-file",
         str(batch_file),
     ]
+    command.extend(_build_cookie_arguments(log))
 
     if extract_audio:
         command.extend(["--ffmpeg-location", str(Path(ffmpeg_path).parent)])
@@ -131,6 +166,12 @@ def download_tracks(
             else:
                 kind = "info"
             log(message, kind)
+            if "SIGN IN TO CONFIRM YOUR AGE" in upper or "USE --COOKIES-FROM-BROWSER" in upper:
+                log(
+                    "YouTube still wants an authenticated browser session. Reopen Guided Chrome from the app, "
+                    "make sure you are signed in with the account that can view the track, and then retry the download.",
+                    "error",
+                )
         return_code = process.wait()
     finally:
         try:

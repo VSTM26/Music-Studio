@@ -118,6 +118,7 @@ If they use the launchers, the app also checks GitHub on startup and updates its
 ## Notes
 
 - The scraper uses a dedicated Chrome profile in `runtime/chrome-profile` so different people can sign in locally without sharing credentials.
+- YouTube downloads reuse that same Guided Chrome profile with `yt-dlp --cookies-from-browser`, which helps with age-restricted or sign-in-only videos.
 - Some YouTube Music playlist counts do not perfectly match what the live browser session exposes while scrolling. The app keeps both the reported count and the exported count so the result stays honest.
 - Spotify support in this repo is metadata export only. It does not try to download audio from Spotify.
 - `yt-dlp` is installed through `requirements.txt`. MP3 extraction can use either a system `ffmpeg` or the bundled `imageio-ffmpeg` fallback.
