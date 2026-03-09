@@ -122,6 +122,7 @@ If they use the launchers, the app also checks GitHub on startup and updates its
 - Some YouTube Music playlist counts do not perfectly match what the live browser session exposes while scrolling. The app keeps both the reported count and the exported count so the result stays honest.
 - Spotify support in this repo is metadata export only. It does not try to download audio from Spotify.
 - `yt-dlp` is installed through `requirements.txt`. MP3 extraction can use either a system `ffmpeg` or the bundled `imageio-ffmpeg` fallback.
+- If MP3 extraction is requested and `ffmpeg` or `ffprobe` is missing, the app now tries to install a full FFmpeg toolchain automatically with `winget` on Windows or `brew` on macOS.
 - ZIP installs update by downloading the latest GitHub branch archive and replacing the managed app files while preserving `.venv`, `output`, and `runtime`. Git clones use `git pull --ff-only` when the checkout is clean.
 - Set `MUSIC_STUDIO_SKIP_UPDATE=1` before launch if you ever need to skip the auto-updater for troubleshooting.
 - On macOS, the app looks for Chrome in both `/Applications` and `~/Applications`. You can always override that with `CHROME_PATH`.

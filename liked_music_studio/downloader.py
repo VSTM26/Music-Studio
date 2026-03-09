@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import importlib.util
+import os
 import subprocess
 import sys
 import tempfile
@@ -33,10 +34,110 @@ def _resolve_ffmpeg_path(require_binary: bool = False) -> tuple[str | None, str 
     return None, None
 
 
+def _resolve_ffprobe_path() -> tuple[str | None, str | None]:
+    system_path = which("ffprobe")
+    if system_path:
+        return system_path, "system"
+    return None, None
+
+
+def _run_install_command(
+    command: list[str],
+    log: Callable[[str, str], None],
+    timeout_seconds: int = 900,
+) -> bool:
+    log(f"Running: {' '.join(command)}", "info")
+    completed = subprocess.run(
+        command,
+        stdout=subprocess.PIPE,
+        stderr=subprocess.STDOUT,
+        text=True,
+        encoding="utf-8",
+        errors="replace",
+        timeout=timeout_seconds,
+        check=False,
+    )
+
+    output_lines = [line.strip() for line in completed.stdout.splitlines() if line.strip()]
+    for line in output_lines[-18:]:
+        kind = "error" if "ERROR" in line.upper() else "info"
+        log(line, kind)
+    return completed.returncode == 0
+
+
+def _try_auto_install_ffmpeg(log: Callable[[str, str], None]) -> bool:
+    if os.name == "nt":
+        winget = which("winget")
+        if not winget:
+            return False
+        package_ids = ["yt-dlp.FFmpeg", "Gyan.FFmpeg.Essentials"]
+        for package_id in package_ids:
+            log(f"Trying to install FFmpeg automatically with winget package `{package_id}`.", "info")
+            command = [
+                winget,
+                "install",
+                "--id",
+                package_id,
+                "--exact",
+                "--silent",
+                "--disable-interactivity",
+                "--accept-package-agreements",
+                "--accept-source-agreements",
+                "--scope",
+                "user",
+                "--no-upgrade",
+            ]
+            if _run_install_command(command, log):
+                return True
+        return False
+
+    if sys.platform == "darwin":
+        brew = which("brew")
+        if not brew:
+            return False
+        log("Trying to install FFmpeg automatically with Homebrew.", "info")
+        return _run_install_command([brew, "install", "ffmpeg"], log)
+
+    return False
+
+
+def _ensure_audio_toolchain(log: Callable[[str, str], None]) -> str:
+    ffmpeg_path, ffmpeg_mode = _resolve_ffmpeg_path(require_binary=True)
+    ffprobe_path, _ = _resolve_ffprobe_path()
+    if ffmpeg_path and ffprobe_path:
+        return ffmpeg_path
+
+    if ffmpeg_mode == "bundled-package" and not ffprobe_path:
+        log(
+            "A bundled ffmpeg binary is available, but MP3 extraction still needs ffprobe. "
+            "Trying to install the full FFmpeg toolchain automatically.",
+            "info",
+        )
+    else:
+        log(
+            "MP3 extraction needs both ffmpeg and ffprobe. Trying to install them automatically.",
+            "info",
+        )
+
+    if _try_auto_install_ffmpeg(log):
+        ffmpeg_path, ffmpeg_mode = _resolve_ffmpeg_path(require_binary=True)
+        ffprobe_path, _ = _resolve_ffprobe_path()
+        if ffmpeg_path and ffprobe_path:
+            log("FFmpeg and ffprobe are now available for audio extraction.", "success")
+            return ffmpeg_path
+
+    raise RuntimeError(
+        "MP3 extraction needs both ffmpeg and ffprobe. Automatic install did not finish successfully. "
+        "On Windows, install FFmpeg with `winget install --id yt-dlp.FFmpeg --exact`. "
+        "On macOS, install it with `brew install ffmpeg`."
+    )
+
+
 def get_tool_status() -> dict[str, dict[str, Any]]:
     yt_dlp_module = importlib.util.find_spec("yt_dlp")
     yt_dlp_command = which("yt-dlp")
     ffmpeg_path, ffmpeg_mode = _resolve_ffmpeg_path()
+    ffprobe_path, ffprobe_mode = _resolve_ffprobe_path()
     return {
         "ytDlp": {
             "available": bool(yt_dlp_module or yt_dlp_command),
@@ -47,6 +148,16 @@ def get_tool_status() -> dict[str, dict[str, Any]]:
             "available": bool(ffmpeg_path),
             "mode": ffmpeg_mode,
             "path": ffmpeg_path,
+        },
+        "ffprobe": {
+            "available": bool(ffprobe_path),
+            "mode": ffprobe_mode,
+            "path": ffprobe_path,
+        },
+        "audioExtraction": {
+            "available": bool(ffmpeg_path and ffprobe_path),
+            "mode": "system" if ffmpeg_mode == "system" and ffprobe_mode == "system" else None,
+            "path": ffmpeg_path if ffmpeg_path and ffprobe_path else None,
         },
     }
 
@@ -105,11 +216,7 @@ def download_tracks(
     if not urls:
         raise RuntimeError("No downloadable YouTube URLs were found in the selected tracks.")
 
-    ffmpeg_path, _ = _resolve_ffmpeg_path(require_binary=extract_audio)
-    if extract_audio and not ffmpeg_path:
-        raise RuntimeError(
-            "ffmpeg is required for audio extraction, but it was not available from PATH or imageio-ffmpeg."
-        )
+    ffmpeg_path = _ensure_audio_toolchain(log) if extract_audio else None
 
     downloads_dir = output_dir / "downloads"
     downloads_dir.mkdir(parents=True, exist_ok=True)
