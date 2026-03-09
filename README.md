@@ -24,7 +24,7 @@ The app runs fully on the user's machine. It does not use personal API keys for 
 ### Windows
 
 ```powershell
-cd D:\liked-music-studio
+cd C:\path\to\Music-Studio
 python -m venv .venv
 .venv\Scripts\activate
 pip install -r requirements.txt
@@ -50,7 +50,7 @@ brew install ffmpeg
 ### Windows
 
 ```powershell
-cd D:\liked-music-studio
+cd C:\path\to\Music-Studio
 .venv\Scripts\activate
 python main.py
 ```

@@ -35,9 +35,8 @@ RUNTIME_DIR = BASE_DIR / "runtime"
 CHROME_PROFILE_DIR = RUNTIME_DIR / "chrome-profile"
 APP_HOST = os.environ.get("APP_HOST", "127.0.0.1")
 DEBUG_HOST = os.environ.get("YTMUSIC_DEBUG_HOST", "127.0.0.1")
-PORT = int(os.environ.get("PORT", "4173"))
+DEFAULT_PORT = int(os.environ.get("PORT", "4173"))
 DEBUG_PORT = int(os.environ.get("YTMUSIC_DEBUG_PORT", "9224"))
-APP_URL = f"http://{APP_HOST}:{PORT}"
 
 
 def _utc_now() -> str:
@@ -65,13 +64,15 @@ class JobState:
 
 
 class StudioState:
-    def __init__(self) -> None:
+    def __init__(self, app_port: int) -> None:
         self.lock = threading.Lock()
         self.logs: list[dict[str, str]] = []
         self.export = JobState()
         self.download = JobState()
         self.output_dir = DEFAULT_OUTPUT_DIR
         self.active_source = "ytmusic"
+        self.app_port = app_port
+        self.app_url = f"http://{APP_HOST}:{app_port}"
         self.output_dir.mkdir(parents=True, exist_ok=True)
         RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
 
@@ -127,8 +128,8 @@ class StudioState:
             "app": {
                 "name": APP_NAME,
                 "version": APP_VERSION,
-                "port": PORT,
-                "url": APP_URL,
+                "port": self.app_port,
+                "url": self.app_url,
             },
             "sources": {
                 "active": active_source,
@@ -533,23 +534,41 @@ class StudioHandler(BaseHTTPRequestHandler):
             return
 
 
-def _open_app() -> None:
-    if os.environ.get("NO_OPEN_BROWSER") == "1":
-        return
-    try:
-        webbrowser.open(APP_URL)
-    except Exception:
-        pass
+def _create_server(handler: Any) -> tuple[ThreadingHTTPServer, int]:
+    port_candidates = [DEFAULT_PORT] if "PORT" in os.environ else [*range(DEFAULT_PORT, DEFAULT_PORT + 25), 0]
+    last_error: OSError | None = None
+
+    for port in port_candidates:
+        try:
+            server = ThreadingHTTPServer((APP_HOST, port), handler)
+            return server, int(server.server_address[1])
+        except OSError as error:
+            last_error = error
+            continue
+
+    assert last_error is not None
+    raise last_error
 
 
 def main() -> None:
-    state = StudioState()
+    state = StudioState(app_port=DEFAULT_PORT)
     handler = partial(StudioHandler, state=state)
-    server = ThreadingHTTPServer((APP_HOST, PORT), handler)
-    state.add_log(f"{APP_NAME} is running at {APP_URL}", "success")
+    server, actual_port = _create_server(handler)
+    state.app_port = actual_port
+    state.app_url = f"http://{APP_HOST}:{actual_port}"
+    if actual_port != DEFAULT_PORT and "PORT" not in os.environ:
+        state.add_log(
+            f"Port {DEFAULT_PORT} was busy, so {APP_NAME} moved to {state.app_url}.",
+            "info",
+        )
+    state.add_log(f"{APP_NAME} is running at {state.app_url}", "success")
     state.add_log("Both YouTube Music and Spotify exports use the local browser session, not API keys.", "info")
-    print(f"{APP_NAME} is running at {APP_URL}")
-    _open_app()
+    print(f"{APP_NAME} is running at {state.app_url}")
+    if os.environ.get("NO_OPEN_BROWSER") != "1":
+        try:
+            webbrowser.open(state.app_url)
+        except Exception:
+            pass
     try:
         server.serve_forever()
     except KeyboardInterrupt:
