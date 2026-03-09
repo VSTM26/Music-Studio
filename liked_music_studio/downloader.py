@@ -3,12 +3,14 @@ from __future__ import annotations
 import json
 import os
 import platform
+import re
 import subprocess
 import sys
 import urllib.request
 from pathlib import Path
 from shutil import which
 from typing import Any, Callable
+from urllib.parse import urlparse
 
 from .devtools import ChromeDebugError, export_source_cookies
 
@@ -23,6 +25,7 @@ GITHUB_API_HEADERS = {
     "Accept": "application/vnd.github+json",
     "User-Agent": "Music-Studio",
 }
+ProgressCallback = Callable[[dict[str, Any]], None]
 
 
 def _has_module(module_name: str) -> bool:
@@ -359,7 +362,21 @@ def _export_guided_cookie_file(log: Callable[[str, str], None]) -> Path | None:
     return cookie_file
 
 
-def _build_cookie_options(log: Callable[[str, str], None]) -> dict[str, Any]:
+def _is_youtube_url(url: str) -> bool:
+    try:
+        host = urlparse(url).netloc.lower()
+    except Exception:
+        return False
+    return any(
+        host == candidate or host.endswith(f".{candidate}")
+        for candidate in ("youtube.com", "youtu.be", "music.youtube.com")
+    )
+
+
+def _build_cookie_options(log: Callable[[str, str], None], urls: list[str]) -> dict[str, Any]:
+    if not any(_is_youtube_url(url) for url in urls):
+        return {}
+
     cookie_file = _export_guided_cookie_file(log)
     if cookie_file:
         return {"cookiefile": str(cookie_file)}
@@ -445,12 +462,116 @@ def _build_progress_hook(log: Callable[[str, str], None]) -> Callable[[dict[str,
     return hook
 
 
-def download_tracks(
-    tracks: list[dict[str, Any]],
+def _parse_fraction(update: dict[str, Any]) -> float:
+    downloaded = update.get("downloaded_bytes")
+    total = update.get("total_bytes") or update.get("total_bytes_estimate")
+    if isinstance(downloaded, (int, float)) and isinstance(total, (int, float)) and total > 0:
+        return max(0.0, min(1.0, float(downloaded) / float(total)))
+
+    percent_text = str(update.get("_percent_str") or "").strip()
+    match = re.search(r"(\d+(?:\.\d+)?)", percent_text)
+    if match:
+        return max(0.0, min(1.0, float(match.group(1)) / 100.0))
+    return 0.0
+
+
+def _emit_progress(
+    callback: ProgressCallback | None,
+    *,
+    label: str,
+    detail: str,
+    percent: float | None,
+) -> None:
+    if not callback:
+        return
+    callback(
+        {
+            "label": label,
+            "detail": detail,
+            "percent": percent,
+        }
+    )
+
+
+def _build_download_progress_hook(
+    total_urls: int,
+    log: Callable[[str, str], None],
+    progress: ProgressCallback | None,
+) -> Callable[[dict[str, Any]], None]:
+    base_hook = _build_progress_hook(log)
+    finished_ids: set[str] = set()
+    state = {"completed": 0}
+
+    def hook(update: dict[str, Any]) -> None:
+        base_hook(update)
+        status = str(update.get("status") or "")
+        info = update.get("info_dict") if isinstance(update.get("info_dict"), dict) else {}
+        title = str(info.get("title") or update.get("filename") or "track").strip()
+
+        if status == "finished":
+            marker = str(info.get("id") or update.get("filename") or title)
+            if marker not in finished_ids:
+                finished_ids.add(marker)
+                state["completed"] += 1
+            overall = min(100.0, (state["completed"] / max(total_urls, 1)) * 100.0)
+            _emit_progress(
+                progress,
+                label=f"Downloaded {state['completed']} of {total_urls}",
+                detail=f"Finished {Path(title).name}",
+                percent=overall,
+            )
+            return
+
+        if status != "downloading":
+            return
+
+        current_fraction = _parse_fraction(update)
+        current_index = min(state["completed"] + 1, total_urls)
+        overall = ((state["completed"] + current_fraction) / max(total_urls, 1)) * 100.0
+        summary_parts = [
+            str(update.get("_percent_str") or "").strip(),
+            str(update.get("_speed_str") or "").strip(),
+            str(update.get("_eta_str") or "").strip(),
+        ]
+        summary = " ".join(part for part in summary_parts if part)
+        detail = f"{Path(title).name}"
+        if summary:
+            detail = f"{detail} | {summary}"
+        _emit_progress(
+            progress,
+            label=f"Downloading {current_index} of {total_urls}",
+            detail=detail,
+            percent=max(0.0, min(100.0, overall)),
+        )
+
+    return hook
+
+
+def _normalize_urls(urls: list[str]) -> list[str]:
+    cleaned: list[str] = []
+    seen: set[str] = set()
+    for raw_url in urls:
+        if not isinstance(raw_url, str):
+            continue
+        url = raw_url.strip()
+        if not url or url in seen:
+            continue
+        cleaned.append(url)
+        seen.add(url)
+    return cleaned
+
+
+def _download_url_batch(
+    urls: list[str],
     output_dir: Path,
     extract_audio: bool,
     log: Callable[[str, str], None],
+    progress: ProgressCallback | None = None,
 ) -> Path:
+    normalized_urls = _normalize_urls(urls)
+    if not normalized_urls:
+        raise RuntimeError("Add at least one valid URL before starting a download.")
+
     try:
         from yt_dlp import YoutubeDL
     except Exception as error:
@@ -458,29 +579,26 @@ def download_tracks(
             "yt-dlp is not available yet. Run the launcher again so dependencies can install."
         ) from error
 
-    if any(track.get("sourcePlatform") != "ytmusic" for track in tracks):
-        raise RuntimeError(
-            "Downloads are only supported for YouTube Music exports. Spotify exports stay metadata-only."
-        )
-
-    urls = [track.get("url") for track in tracks if isinstance(track.get("url"), str) and track["url"]]
-    if not urls:
-        raise RuntimeError("No downloadable YouTube URLs were found in the selected tracks.")
-
     ffmpeg_path = _ensure_audio_toolchain(log) if extract_audio else None
-    cookie_options = _build_cookie_options(log)
+    cookie_options = _build_cookie_options(log, normalized_urls)
 
     downloads_dir = output_dir / "downloads"
     downloads_dir.mkdir(parents=True, exist_ok=True)
 
     logger = _YtDlpLogger(log)
+    _emit_progress(
+        progress,
+        label=f"Preparing {len(normalized_urls)} URL(s)",
+        detail="Setting up yt-dlp for this job.",
+        percent=0.0,
+    )
     ydl_options: dict[str, Any] = {
         "ignoreerrors": True,
         "no_warnings": True,
         "paths": {"home": str(downloads_dir)},
         "outtmpl": {"default": "%(title)s [%(id)s].%(ext)s"},
         "logger": logger,
-        "progress_hooks": [_build_progress_hook(log)],
+        "progress_hooks": [_build_download_progress_hook(len(normalized_urls), log, progress)],
     }
     ydl_options.update(cookie_options)
     if extract_audio:
@@ -493,12 +611,47 @@ def download_tracks(
             }
         ]
 
-    log(f"Starting yt-dlp for {len(urls)} track(s).", "info")
+    log(f"Starting yt-dlp for {len(normalized_urls)} item(s).", "info")
     with YoutubeDL(ydl_options) as downloader:
-        return_code = downloader.download(urls)
+        return_code = downloader.download(normalized_urls)
 
     if return_code != 0 or logger.error_count:
         raise RuntimeError(f"yt-dlp exited with code {return_code}.")
 
+    _emit_progress(
+        progress,
+        label=f"Finished {len(normalized_urls)} of {len(normalized_urls)}",
+        detail=f"Downloads saved in {downloads_dir}",
+        percent=100.0,
+    )
     log(f"Downloads saved in {downloads_dir}", "success")
     return downloads_dir
+
+
+def download_tracks(
+    tracks: list[dict[str, Any]],
+    output_dir: Path,
+    extract_audio: bool,
+    log: Callable[[str, str], None],
+    progress: ProgressCallback | None = None,
+) -> Path:
+    if any(track.get("sourcePlatform") != "ytmusic" for track in tracks):
+        raise RuntimeError(
+            "Downloads are only supported for YouTube Music exports. Spotify exports stay metadata-only."
+        )
+
+    urls = [track.get("url") for track in tracks if isinstance(track.get("url"), str) and track["url"]]
+    if not urls:
+        raise RuntimeError("No downloadable YouTube URLs were found in the selected tracks.")
+
+    return _download_url_batch(urls, output_dir, extract_audio, log, progress)
+
+
+def download_urls(
+    urls: list[str],
+    output_dir: Path,
+    extract_audio: bool,
+    log: Callable[[str, str], None],
+    progress: ProgressCallback | None = None,
+) -> Path:
+    return _download_url_batch(urls, output_dir, extract_audio, log, progress)

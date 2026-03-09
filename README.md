@@ -9,6 +9,7 @@ It can:
 - scrape YouTube Music `Liked Music` or Spotify `Liked Songs`
 - export results into `txt`, `csv`, and `json`
 - optionally download all or selected YouTube Music tracks with `yt-dlp`
+- optionally paste your own YouTube or other `yt-dlp`-supported links directly into the app
 - optionally extract MP3 audio through `ffmpeg`
 - auto-update source installs from GitHub when you use the repo launchers
 
@@ -102,6 +103,7 @@ If you use one of the repo launchers, it creates `.venv` when needed, installs `
 8. Download the generated `txt`, `csv`, or `json` export files.
 9. If the export came from YouTube Music, optionally select tracks or use `Download All Exported`.
 10. Turn on `Extract audio into MP3 files with ffmpeg` if you want audio-only output.
+11. If you already have links, skip the export flow and use the `Direct Links` section instead.
 
 ## Project folders
 
@@ -115,6 +117,7 @@ If you use one of the repo launchers, it creates `.venv` when needed, installs `
 - The scraper uses a dedicated Chrome profile in `runtime/chrome-profile` so each person signs in locally with their own account.
 - YouTube downloads reuse that guided Chrome profile with browser cookies, which helps with sign-in-only or age-restricted videos.
 - For YouTube downloads that need authentication, Music Studio first exports cookies from the Guided Chrome DevTools session into a `yt-dlp` cookie file so it does not depend on Chrome's locked cookie database.
+- Direct-link downloads support pasted YouTube URLs, playlists, and most other links that `yt-dlp` can handle.
 - Spotify support is metadata export only. It does not try to download Spotify audio.
 - `yt-dlp` installs through `requirements.txt`.
 - MP3 extraction can use a system `ffmpeg`, app-local portable `ffmpeg` + `ffprobe`, or the bundled `imageio-ffmpeg` fallback for download-only flows.

@@ -9,6 +9,7 @@ from urllib.request import urlopen
 
 from websocket import WebSocketBadStatusException, WebSocketTimeoutException, create_connection
 
+ProgressCallback = Callable[[dict[str, Any]], None]
 
 YTMUSIC_PLAYLIST_URL = "https://music.youtube.com/playlist?list=LM"
 SPOTIFY_COLLECTION_URL = "https://open.spotify.com/collection/tracks"
@@ -46,6 +47,24 @@ class ScrapeResult:
     reported_count: int | None
     songs: list[dict[str, Any]]
     download_supported: bool
+
+
+def _emit_progress(
+    callback: ProgressCallback | None,
+    *,
+    label: str,
+    detail: str,
+    percent: float | None = None,
+) -> None:
+    if not callback:
+        return
+    callback(
+        {
+            "label": label,
+            "detail": detail,
+            "percent": percent,
+        }
+    )
 
 
 def _get_json(url: str, timeout: float = 5.0) -> dict[str, Any] | list[Any]:
@@ -239,9 +258,16 @@ def _open_source_target(
     connection: DevToolsConnection,
     source: str,
     log: Callable[[str, str], None],
+    progress: ProgressCallback | None = None,
 ) -> tuple[str, str]:
     url = SOURCE_URLS[source]
     label = SOURCE_LABELS[source]
+    _emit_progress(
+        progress,
+        label=f"Opening {label}",
+        detail=f"Loading {label} in the guided browser.",
+        percent=None,
+    )
     target_id = connection.create_target(url)
     session_id = connection.attach_to_target(target_id)
     connection.send("Page.enable", session_id=session_id)
@@ -312,6 +338,7 @@ def _collect_ytmusic_songs(
     connection: DevToolsConnection,
     session_id: str,
     log: Callable[[str, str], None],
+    progress: ProgressCallback | None = None,
 ) -> ScrapeResult:
     songs: dict[str, dict[str, Any]] = {}
     reported_count: int | None = None
@@ -346,6 +373,17 @@ def _collect_ytmusic_songs(
         current_count = len(songs)
         if iteration == 1 or current_count != last_count:
             log(f"YouTube Music scan is at {current_count} discovered tracks.", "info")
+            percent = None
+            detail = f"Discovered {current_count} track(s) so far."
+            if reported_count and reported_count > 0:
+                percent = min(99.0, (current_count / reported_count) * 100.0)
+                detail = f"Discovered {current_count} of about {reported_count} track(s)."
+            _emit_progress(
+                progress,
+                label="Scanning YouTube Music likes",
+                detail=detail,
+                percent=percent,
+            )
 
         if reported_count and current_count >= reported_count:
             break
@@ -381,19 +419,26 @@ def scrape_youtube_liked_music(
     host: str,
     port: int,
     log: Callable[[str, str], None],
+    progress: ProgressCallback | None = None,
 ) -> ScrapeResult:
     connection = DevToolsConnection(host, port)
     target_id: str | None = None
 
     try:
-        target_id, session_id = _open_source_target(connection, "ytmusic", log)
+        target_id, session_id = _open_source_target(connection, "ytmusic", log, progress)
+        _emit_progress(
+            progress,
+            label="Waiting for YouTube Music",
+            detail="Sign in if needed, then let the liked songs page finish loading.",
+            percent=None,
+        )
         _wait_for_snapshot(
             connection,
             session_id,
             _build_ytmusic_snapshot_expression(),
             "Timed out waiting for the YouTube Music Liked Music page. Sign in first.",
         )
-        return _collect_ytmusic_songs(connection, session_id, log)
+        return _collect_ytmusic_songs(connection, session_id, log, progress)
     finally:
         if target_id:
             connection.close_target(target_id)
@@ -490,6 +535,7 @@ def _collect_spotify_songs(
     connection: DevToolsConnection,
     session_id: str,
     log: Callable[[str, str], None],
+    progress: ProgressCallback | None = None,
 ) -> ScrapeResult:
     songs: dict[str, dict[str, Any]] = {}
     reported_count: int | None = None
@@ -523,6 +569,17 @@ def _collect_spotify_songs(
         current_count = len(songs)
         if iteration == 1 or current_count != last_count:
             log(f"Spotify scan is at {current_count} discovered tracks.", "info")
+            percent = None
+            detail = f"Discovered {current_count} track(s) so far."
+            if reported_count and reported_count > 0:
+                percent = min(99.0, (current_count / reported_count) * 100.0)
+                detail = f"Discovered {current_count} of about {reported_count} track(s)."
+            _emit_progress(
+                progress,
+                label="Scanning Spotify liked songs",
+                detail=detail,
+                percent=percent,
+            )
 
         if reported_count and current_count >= reported_count:
             break
@@ -558,19 +615,26 @@ def scrape_spotify_liked_songs(
     host: str,
     port: int,
     log: Callable[[str, str], None],
+    progress: ProgressCallback | None = None,
 ) -> ScrapeResult:
     connection = DevToolsConnection(host, port)
     target_id: str | None = None
 
     try:
-        target_id, session_id = _open_source_target(connection, "spotify", log)
+        target_id, session_id = _open_source_target(connection, "spotify", log, progress)
+        _emit_progress(
+            progress,
+            label="Waiting for Spotify",
+            detail="Sign in if needed, then let the liked songs page finish loading.",
+            percent=None,
+        )
         _wait_for_snapshot(
             connection,
             session_id,
             _build_spotify_snapshot_expression(),
             "Timed out waiting for the Spotify Liked Songs page. Sign in first.",
         )
-        return _collect_spotify_songs(connection, session_id, log)
+        return _collect_spotify_songs(connection, session_id, log, progress)
     finally:
         if target_id:
             connection.close_target(target_id)
@@ -582,10 +646,11 @@ def scrape_source(
     host: str,
     port: int,
     log: Callable[[str, str], None],
+    progress: ProgressCallback | None = None,
 ) -> ScrapeResult:
     if source == "spotify":
-        return scrape_spotify_liked_songs(host, port, log)
-    return scrape_youtube_liked_music(host, port, log)
+        return scrape_spotify_liked_songs(host, port, log, progress)
+    return scrape_youtube_liked_music(host, port, log, progress)
 
 
 def export_source_cookies(

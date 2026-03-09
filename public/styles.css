@@ -202,6 +202,8 @@ code {
 .status-card,
 .files-card,
 .summary-card,
+.media-card,
+.direct-card,
 .logs-card,
 .tracks-card {
   padding: 24px;
@@ -224,6 +226,7 @@ code {
   grid-column: span 12;
 }
 
+.direct-card,
 .logs-card,
 .tracks-card {
   grid-column: span 12;
@@ -397,6 +400,99 @@ code {
   color: rgba(19, 33, 38, 0.62);
 }
 
+.direct-grid {
+  display: grid;
+  grid-template-columns: 1.45fr 1fr;
+  gap: 18px;
+  align-items: start;
+}
+
+.direct-textarea {
+  width: 100%;
+  min-height: 220px;
+  margin-top: 14px;
+  padding: 16px 18px;
+  border: 1px solid rgba(19, 33, 38, 0.14);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.72);
+  color: var(--ink);
+  resize: vertical;
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.direct-actions {
+  display: grid;
+  gap: 16px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.54);
+  border: 1px solid rgba(19, 33, 38, 0.08);
+}
+
+.progress-panel {
+  margin-bottom: 16px;
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(31, 105, 102, 0.14), rgba(217, 122, 43, 0.14));
+  border: 1px solid rgba(19, 33, 38, 0.08);
+}
+
+.progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 14px;
+}
+
+.progress-head .eyebrow {
+  margin-bottom: 0.35rem;
+}
+
+.progress-head strong {
+  display: block;
+  font-size: 1.18rem;
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+}
+
+.progress-value {
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(19, 33, 38, 0.62);
+}
+
+.progress-track {
+  position: relative;
+  overflow: hidden;
+  height: 12px;
+  margin-top: 14px;
+  border-radius: 999px;
+  background: rgba(19, 33, 38, 0.1);
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--teal) 0%, var(--sun) 100%);
+  box-shadow: 0 8px 22px rgba(31, 105, 102, 0.24);
+  transition: width 220ms ease;
+}
+
+.progress-fill.is-indeterminate {
+  width: 34%;
+  animation: progressSweep 1.45s ease-in-out infinite;
+}
+
+.progress-detail {
+  margin: 12px 0 0;
+  line-height: 1.55;
+  color: rgba(19, 33, 38, 0.74);
+}
+
 .logs {
   min-height: 320px;
   max-height: 420px;
@@ -534,6 +630,16 @@ tbody tr:hover {
   }
 }
 
+@keyframes progressSweep {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  100% {
+    transform: translateX(340%);
+  }
+}
+
 @media (max-width: 1040px) {
   .hero,
   .dashboard {
@@ -544,6 +650,8 @@ tbody tr:hover {
   .status-card,
   .files-card,
   .summary-card,
+  .media-card,
+  .direct-card,
   .logs-card,
   .tracks-card {
     grid-column: span 1;
@@ -565,6 +673,8 @@ tbody tr:hover {
   .status-card,
   .files-card,
   .summary-card,
+  .media-card,
+  .direct-card,
   .logs-card,
   .tracks-card {
     padding: 20px;
@@ -585,6 +695,14 @@ tbody tr:hover {
   }
 
   .folder-actions {
+    justify-content: stretch;
+  }
+
+  .direct-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .direct-actions .folder-actions {
     justify-content: stretch;
   }
 

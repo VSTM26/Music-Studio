@@ -35,9 +35,19 @@ const elements = {
   downloadAllBtn: document.querySelector('#downloadAllBtn'),
   clearSelectionBtn: document.querySelector('#clearSelectionBtn'),
   extractAudio: document.querySelector('#extractAudio'),
+  directUrls: document.querySelector('#directUrls'),
+  directExtractAudio: document.querySelector('#directExtractAudio'),
+  directDownloadBtn: document.querySelector('#directDownloadBtn'),
+  clearDirectUrlsBtn: document.querySelector('#clearDirectUrlsBtn'),
+  directLinkSummary: document.querySelector('#directLinkSummary'),
   selectionSummary: document.querySelector('#selectionSummary'),
   fileLinks: document.querySelector('#fileLinks'),
   summaryBanner: document.querySelector('#summaryBanner'),
+  progressPanel: document.querySelector('#progressPanel'),
+  progressLabel: document.querySelector('#progressLabel'),
+  progressValue: document.querySelector('#progressValue'),
+  progressFill: document.querySelector('#progressFill'),
+  progressDetail: document.querySelector('#progressDetail'),
   logs: document.querySelector('#logs'),
   tracksTable: document.querySelector('#tracksTable'),
   trackSearch: document.querySelector('#trackSearch'),
@@ -102,6 +112,19 @@ function getTracks() {
 
 function downloadsSupported() {
   return Boolean(state.results?.downloadSupported ?? state.status?.latestExport?.downloadSupported);
+}
+
+function parseDirectUrls(rawValue) {
+  return [...new Set(
+    String(rawValue || '')
+      .split(/\s+/)
+      .map((value) => value.trim())
+      .filter(Boolean),
+  )];
+}
+
+function getDirectUrls() {
+  return parseDirectUrls(elements.directUrls?.value || '');
 }
 
 function getFilteredTracks() {
@@ -206,8 +229,9 @@ function renderStatus() {
   }
 
   elements.downloadStatus.textContent = status.download.running ? 'Running' : 'Idle';
+  const isDirectDownload = String(status.download.mode || '').startsWith('direct');
   elements.downloadDetail.textContent = status.download.running
-    ? `Working on ${formatNumber(status.download.requested_count)} tracks`
+    ? `Working on ${formatNumber(status.download.requested_count)} ${isDirectDownload ? 'link(s)' : 'track(s)'}`
     : status.download.last_finished_at
       ? `Last finished ${formatTime(status.download.last_finished_at)}`
       : 'No media download has been started yet.';
@@ -230,6 +254,45 @@ function renderStatus() {
   elements.outputFolderDetail.textContent = `Exports save here, and YouTube media downloads go into ${status.output?.downloadsDirectory || ''}`;
 
   syncActionButtons();
+}
+
+function renderLiveProgress() {
+  const progress = state.status?.progress;
+  if (!progress) {
+    elements.progressLabel.textContent = 'Ready for the next run';
+    elements.progressValue.textContent = 'Idle';
+    elements.progressDetail.textContent = 'Start an export or a direct-link download to see live progress here.';
+    elements.progressFill.classList.remove('is-indeterminate');
+    elements.progressFill.style.width = '0%';
+    return;
+  }
+
+  elements.progressLabel.textContent = progress.label || 'Working...';
+  elements.progressDetail.textContent = progress.detail || 'Music Studio is processing your request.';
+
+  if (!progress.running) {
+    if (typeof progress.percent === 'number') {
+      elements.progressValue.textContent = `${Math.round(progress.percent)}%`;
+      elements.progressFill.classList.remove('is-indeterminate');
+      elements.progressFill.style.width = `${Math.max(2, Math.min(100, progress.percent))}%`;
+    } else {
+      elements.progressValue.textContent = 'Idle';
+      elements.progressFill.classList.remove('is-indeterminate');
+      elements.progressFill.style.width = '0%';
+    }
+    return;
+  }
+
+  if (typeof progress.percent === 'number') {
+    elements.progressValue.textContent = `${Math.round(progress.percent)}%`;
+    elements.progressFill.classList.remove('is-indeterminate');
+    elements.progressFill.style.width = `${Math.max(2, Math.min(100, progress.percent))}%`;
+    return;
+  }
+
+  elements.progressValue.textContent = 'Live';
+  elements.progressFill.classList.add('is-indeterminate');
+  elements.progressFill.style.width = '';
 }
 
 function renderFiles() {
@@ -321,6 +384,18 @@ function renderSelectionSummary() {
   }
 }
 
+function renderDirectLinkSummary() {
+  const urls = getDirectUrls();
+  if (!urls.length) {
+    elements.directLinkSummary.textContent =
+      'Paste one or more URLs to start a direct yt-dlp job.';
+    return;
+  }
+
+  elements.directLinkSummary.textContent =
+    `${formatNumber(urls.length)} URL(s) ready. Music Studio will save them into your selected folder${elements.directExtractAudio.checked ? ' and extract MP3 audio where possible' : ''}.`;
+}
+
 function syncSelectAllCheckbox() {
   const visibleKeys = getFilteredTracks()
     .map((track) => track.trackKey)
@@ -402,6 +477,7 @@ function syncActionButtons() {
   const tracks = getTracks();
   const hasSelection = state.selectedKeys.size > 0;
   const canDownload = downloadsSupported();
+  const directUrls = getDirectUrls();
 
   elements.chooseFolderBtn.disabled = exportRunning || downloadRunning;
   elements.launchBrowserBtn.disabled = exportRunning;
@@ -416,6 +492,11 @@ function syncActionButtons() {
   if (!canDownload) {
     elements.extractAudio.checked = false;
   }
+  elements.directDownloadBtn.disabled =
+    exportRunning || downloadRunning || !ytDlpAvailable || directUrls.length === 0;
+  elements.clearDirectUrlsBtn.disabled = directUrls.length === 0;
+  elements.directExtractAudio.disabled = exportRunning || downloadRunning || !ytDlpAvailable;
+  elements.directUrls.disabled = exportRunning || downloadRunning;
 }
 
 async function loadResults() {
@@ -427,6 +508,7 @@ async function loadResults() {
     state.selectedKeys.clear();
   }
   renderTracks();
+  renderDirectLinkSummary();
   syncActionButtons();
 }
 
@@ -435,6 +517,7 @@ async function refreshStatus() {
     const previousExportedAt = state.status?.latestExport?.exportedAt || null;
     state.status = await fetchJson('/api/status');
     renderStatus();
+    renderLiveProgress();
     renderFiles();
     renderSummary();
     renderLogs();
@@ -565,10 +648,38 @@ elements.downloadAllBtn.addEventListener('click', () => {
   );
 });
 
+elements.directDownloadBtn.addEventListener('click', () => {
+  invokeAction(
+    '/api/direct-download',
+    elements.directDownloadBtn,
+    'Download Pasted Links',
+    'Starting...',
+    {
+      urls: getDirectUrls(),
+      extractAudio: elements.directExtractAudio.checked,
+    },
+  );
+});
+
 elements.clearSelectionBtn.addEventListener('click', () => {
   state.selectedKeys.clear();
   renderTracks();
   syncActionButtons();
+});
+
+elements.clearDirectUrlsBtn.addEventListener('click', () => {
+  elements.directUrls.value = '';
+  renderDirectLinkSummary();
+  syncActionButtons();
+});
+
+elements.directUrls.addEventListener('input', () => {
+  renderDirectLinkSummary();
+  syncActionButtons();
+});
+
+elements.directExtractAudio.addEventListener('change', () => {
+  renderDirectLinkSummary();
 });
 
 elements.trackSearch.addEventListener('input', (event) => {
@@ -620,4 +731,5 @@ elements.selectAllTracks.addEventListener('change', (event) => {
 
 await refreshStatus();
 await loadResults();
+renderDirectLinkSummary();
 setInterval(refreshStatus, 2500);

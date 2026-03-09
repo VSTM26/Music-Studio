@@ -25,7 +25,7 @@ from .devtools import (
     get_debug_status,
     scrape_source,
 )
-from .downloader import download_tracks, get_tool_status
+from .downloader import download_tracks, download_urls, get_tool_status
 from .exports import load_latest_results, load_manifest, write_exports
 
 
@@ -116,6 +116,9 @@ class JobState:
     last_exit_code: int | None = None
     requested_count: int | None = None
     mode: str | None = None
+    progress_percent: float | None = None
+    progress_label: str | None = None
+    progress_detail: str | None = None
 
 
 class StudioState:
@@ -130,6 +133,79 @@ class StudioState:
         self.app_url = f"http://{APP_HOST}:{app_port}"
         self.output_dir.mkdir(parents=True, exist_ok=True)
         RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
+
+    def _update_job_progress(
+        self,
+        job_name: str,
+        *,
+        label: str | None = None,
+        detail: str | None = None,
+        percent: float | None = None,
+    ) -> None:
+        with self.lock:
+            job = self.export if job_name == "export" else self.download
+            if label is not None:
+                job.progress_label = label
+            if detail is not None:
+                job.progress_detail = detail
+            if percent is None:
+                job.progress_percent = None
+            else:
+                job.progress_percent = max(0.0, min(100.0, round(float(percent), 1)))
+
+    def _consume_progress_update(self, job_name: str, payload: dict[str, Any]) -> None:
+        self._update_job_progress(
+            job_name,
+            label=str(payload.get("label") or "") or None,
+            detail=str(payload.get("detail") or "") or None,
+            percent=payload.get("percent") if isinstance(payload.get("percent"), (int, float)) else None,
+        )
+
+    def _build_live_progress(
+        self,
+        export_state: JobState,
+        download_state: JobState,
+    ) -> dict[str, Any]:
+        if download_state.running:
+            return {
+                "kind": "download",
+                "running": True,
+                "label": download_state.progress_label or "Preparing downloads",
+                "detail": download_state.progress_detail or "Waiting for yt-dlp to begin.",
+                "percent": download_state.progress_percent,
+            }
+        if export_state.running:
+            return {
+                "kind": "export",
+                "running": True,
+                "label": export_state.progress_label or "Preparing export",
+                "detail": export_state.progress_detail or "Opening the selected source.",
+                "percent": export_state.progress_percent,
+            }
+        latest_kind = None
+        latest_job = None
+        for kind, job in (("download", download_state), ("export", export_state)):
+            marker = job.last_finished_at or job.last_started_at or ""
+            if not marker:
+                continue
+            if latest_job is None or marker > (latest_job.last_finished_at or latest_job.last_started_at or ""):
+                latest_kind = kind
+                latest_job = job
+        if latest_job and (latest_job.progress_label or latest_job.progress_detail):
+            return {
+                "kind": latest_kind,
+                "running": False,
+                "label": latest_job.progress_label or "Last job complete",
+                "detail": latest_job.progress_detail or "The last job finished.",
+                "percent": latest_job.progress_percent,
+            }
+        return {
+            "kind": None,
+            "running": False,
+            "label": "Ready for the next run",
+            "detail": "Start an export or a direct-link download to see live progress here.",
+            "percent": None,
+        }
 
     def add_log(self, message: str, kind: str = "info") -> None:
         with self.lock:
@@ -211,6 +287,7 @@ class StudioState:
             "tools": get_tool_status(),
             "export": export_state.__dict__,
             "download": download_state.__dict__,
+            "progress": self._build_live_progress(export_state, download_state),
             "latestExport": self.get_latest_export(),
             "logs": logs,
         }
@@ -330,7 +407,10 @@ class StudioState:
             self.export.last_error = None
             self.export.last_exit_code = None
             self.export.requested_count = None
-            self.export.mode = self.active_source
+            self.export.mode = f"{self.active_source}-export"
+            self.export.progress_percent = 0.0
+            self.export.progress_label = f"Preparing {SOURCE_LABELS[self.active_source]} export"
+            self.export.progress_detail = "Connecting to the guided browser session."
         threading.Thread(target=self._run_export_job, daemon=True).start()
 
     def _run_export_job(self) -> None:
@@ -339,7 +419,25 @@ class StudioState:
         source_label = SOURCE_LABELS[source]
         self.add_log(f"Starting the browser scrape for {source_label}.", "info")
         try:
-            scrape_result = scrape_source(source, DEBUG_HOST, DEBUG_PORT, self.add_log)
+            self._update_job_progress(
+                "export",
+                label=f"Preparing {source_label} export",
+                detail="Opening the source page and waiting for it to load.",
+                percent=0.0,
+            )
+            scrape_result = scrape_source(
+                source,
+                DEBUG_HOST,
+                DEBUG_PORT,
+                self.add_log,
+                progress=lambda payload: self._consume_progress_update("export", payload),
+            )
+            self._update_job_progress(
+                "export",
+                label="Writing export files",
+                detail=f"Saving {len(scrape_result.songs)} track(s) into text, CSV, and JSON.",
+                percent=100.0,
+            )
             manifest = write_exports(
                 self.output_dir,
                 scrape_result.source_platform,
@@ -352,6 +450,11 @@ class StudioState:
                 self.export.running = False
                 self.export.last_finished_at = _utc_now()
                 self.export.last_exit_code = 0
+                self.export.progress_label = "Export complete"
+                self.export.progress_detail = (
+                    f"Saved {manifest['exportedCount']} track(s) into {self.output_dir}."
+                )
+                self.export.progress_percent = 100.0
             self.add_log(
                 f"{scrape_result.source_label} export finished with {manifest['exportedCount']} tracks in {self.output_dir}.",
                 "success",
@@ -362,6 +465,9 @@ class StudioState:
                 self.export.last_finished_at = _utc_now()
                 self.export.last_exit_code = 1
                 self.export.last_error = str(error)
+                self.export.progress_label = "Export failed"
+                self.export.progress_detail = str(error)
+                self.export.progress_percent = None
             self.add_log(str(error), "error")
 
     def start_download(self, track_keys: list[str] | None, extract_audio: bool) -> None:
@@ -389,20 +495,56 @@ class StudioState:
             self.download.last_error = None
             self.download.last_exit_code = None
             self.download.requested_count = len(tracks)
-            self.download.mode = "audio" if extract_audio else "media"
+            self.download.mode = "selection-audio" if extract_audio else "selection-media"
+            self.download.progress_percent = 0.0
+            self.download.progress_label = f"Preparing {len(tracks)} exported track(s)"
+            self.download.progress_detail = "Setting up yt-dlp for the selected export links."
         threading.Thread(
             target=self._run_download_job,
             args=(tracks, extract_audio),
             daemon=True,
         ).start()
 
+    def start_direct_download(self, urls: list[str], extract_audio: bool) -> None:
+        cleaned_urls = [str(url).strip() for url in urls if str(url).strip()]
+        if not cleaned_urls:
+            raise RuntimeError("Paste at least one URL before starting a direct download.")
+
+        with self.lock:
+            if self.download.running:
+                raise RuntimeError("A download job is already running.")
+            self.download.running = True
+            self.download.last_started_at = _utc_now()
+            self.download.last_finished_at = None
+            self.download.last_error = None
+            self.download.last_exit_code = None
+            self.download.requested_count = len(cleaned_urls)
+            self.download.mode = "direct-audio" if extract_audio else "direct-media"
+            self.download.progress_percent = 0.0
+            self.download.progress_label = f"Preparing {len(cleaned_urls)} direct URL(s)"
+            self.download.progress_detail = "Setting up yt-dlp for pasted links."
+        threading.Thread(
+            target=self._run_direct_download_job,
+            args=(cleaned_urls, extract_audio),
+            daemon=True,
+        ).start()
+
     def _run_download_job(self, tracks: list[dict[str, Any]], extract_audio: bool) -> None:
         try:
-            downloads_dir = download_tracks(tracks, self.output_dir, extract_audio, self.add_log)
+            downloads_dir = download_tracks(
+                tracks,
+                self.output_dir,
+                extract_audio,
+                self.add_log,
+                progress=lambda payload: self._consume_progress_update("download", payload),
+            )
             with self.lock:
                 self.download.running = False
                 self.download.last_finished_at = _utc_now()
                 self.download.last_exit_code = 0
+                self.download.progress_label = "Download complete"
+                self.download.progress_detail = f"Saved files into {downloads_dir}."
+                self.download.progress_percent = 100.0
             label = "audio files" if extract_audio else "media files"
             self.add_log(f"Finished downloading {label} into {downloads_dir}.", "success")
         except Exception as error:
@@ -411,6 +553,39 @@ class StudioState:
                 self.download.last_finished_at = _utc_now()
                 self.download.last_exit_code = 1
                 self.download.last_error = str(error)
+                self.download.progress_label = "Download failed"
+                self.download.progress_detail = str(error)
+                self.download.progress_percent = None
+            self.add_log(str(error), "error")
+
+    def _run_direct_download_job(self, urls: list[str], extract_audio: bool) -> None:
+        self.add_log(f"Starting a direct-link download for {len(urls)} URL(s).", "info")
+        try:
+            downloads_dir = download_urls(
+                urls,
+                self.output_dir,
+                extract_audio,
+                self.add_log,
+                progress=lambda payload: self._consume_progress_update("download", payload),
+            )
+            with self.lock:
+                self.download.running = False
+                self.download.last_finished_at = _utc_now()
+                self.download.last_exit_code = 0
+                self.download.progress_label = "Direct download complete"
+                self.download.progress_detail = f"Saved files into {downloads_dir}."
+                self.download.progress_percent = 100.0
+            label = "audio files" if extract_audio else "media files"
+            self.add_log(f"Finished direct-link download of {label} into {downloads_dir}.", "success")
+        except Exception as error:
+            with self.lock:
+                self.download.running = False
+                self.download.last_finished_at = _utc_now()
+                self.download.last_exit_code = 1
+                self.download.last_error = str(error)
+                self.download.progress_label = "Direct download failed"
+                self.download.progress_detail = str(error)
+                self.download.progress_percent = None
             self.add_log(str(error), "error")
 
     def resolve_download(self, file_name: str) -> Path | None:
@@ -494,6 +669,21 @@ class StudioHandler(BaseHTTPRequestHandler):
                 self._send_json(
                     HTTPStatus.ACCEPTED,
                     {"ok": True, "message": "Download job started."},
+                )
+                return
+            if path == "/api/direct-download":
+                raw_urls = body.get("urls") if isinstance(body, dict) else None
+                if isinstance(raw_urls, str):
+                    urls = raw_urls.split()
+                elif isinstance(raw_urls, list):
+                    urls = [str(item) for item in raw_urls]
+                else:
+                    raise RuntimeError("urls must be provided as a string or an array.")
+                extract_audio = bool(body.get("extractAudio")) if isinstance(body, dict) else False
+                self.state.start_direct_download(urls, extract_audio)
+                self._send_json(
+                    HTTPStatus.ACCEPTED,
+                    {"ok": True, "message": "Direct download job started."},
                 )
                 return
             self._send_json(HTTPStatus.NOT_FOUND, {"message": "Not found"})

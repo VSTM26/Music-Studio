@@ -25,7 +25,8 @@
             <code>.csv</code>, and <code>.json</code> files. The app uses the live
             browser session only, so it does not require your own API keys. Optional
             downloads remain available for YouTube Music exports through
-            <code>yt-dlp</code> and <code>ffmpeg</code>.
+            <code>yt-dlp</code> and <code>ffmpeg</code>, and you can also paste your own
+            links directly if you already have them.
           </p>
         </div>
 
@@ -62,7 +63,7 @@
               <span class="step-index">03</span>
               <div>
                 <h3>Run the export</h3>
-                <p>Results land in your selected save folder and are previewed below. Downloads stay enabled for YouTube Music exports only.</p>
+                <p>Results land in your selected save folder and are previewed below. If you already have links, use the direct link tools instead of exporting first.</p>
               </div>
             </li>
           </ol>
@@ -156,10 +157,55 @@
           </p>
         </section>
 
+        <section class="panel direct-card">
+          <div class="section-heading">
+            <p class="eyebrow">Direct Links</p>
+            <h2>Drop in links you already have</h2>
+          </div>
+          <div class="direct-grid">
+            <div class="direct-copy">
+              <p class="selection-summary">
+                Paste one or more URLs and Music Studio will run them through <code>yt-dlp</code>.
+                This is great for regular YouTube links, playlists, or any other URL that <code>yt-dlp</code> supports.
+              </p>
+              <textarea id="directUrls" class="direct-textarea" placeholder="Paste one or more URLs here, one per line&#10;https://www.youtube.com/watch?v=...&#10;https://music.youtube.com/watch?v=..."></textarea>
+              <p class="selection-summary subtle-note">
+                If a pasted YouTube link needs sign-in, age access, or private access, open Guided Chrome first so Music Studio can reuse that session.
+              </p>
+            </div>
+            <div class="direct-actions">
+              <label class="toggle">
+                <input id="directExtractAudio" type="checkbox">
+                <span>Extract pasted links into MP3 files with ffmpeg</span>
+              </label>
+              <div class="folder-actions">
+                <button id="directDownloadBtn" class="action action-secondary">Download Pasted Links</button>
+                <button id="clearDirectUrlsBtn" class="action action-ghost">Clear Links</button>
+              </div>
+              <p id="directLinkSummary" class="selection-summary">
+                Paste one or more URLs to start a direct yt-dlp job.
+              </p>
+            </div>
+          </div>
+        </section>
+
         <section class="panel logs-card">
           <div class="section-heading">
             <p class="eyebrow">Process Log</p>
             <h2>Live run output</h2>
+          </div>
+          <div id="progressPanel" class="progress-panel">
+            <div class="progress-head">
+              <div>
+                <p class="eyebrow">Live Progress</p>
+                <strong id="progressLabel">Ready for the next run</strong>
+              </div>
+              <span id="progressValue" class="progress-value">Idle</span>
+            </div>
+            <div class="progress-track">
+              <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <p id="progressDetail" class="progress-detail">Start an export or a direct-link download to see live progress here.</p>
           </div>
           <div id="logs" class="logs empty-state">Waiting for activity...</div>
         </section>
