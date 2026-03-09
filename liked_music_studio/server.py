@@ -26,12 +26,13 @@ from .devtools import (
 )
 from .downloader import download_tracks, get_tool_status
 from .exports import load_latest_results, load_manifest, write_exports
+from .paths import output_dir as app_output_dir
+from .paths import public_dir, runtime_dir
 
 
-BASE_DIR = Path(__file__).resolve().parents[1]
-PUBLIC_DIR = BASE_DIR / "public"
-DEFAULT_OUTPUT_DIR = BASE_DIR / "output"
-RUNTIME_DIR = BASE_DIR / "runtime"
+PUBLIC_DIR = public_dir()
+DEFAULT_OUTPUT_DIR = app_output_dir()
+RUNTIME_DIR = runtime_dir()
 CHROME_PROFILE_DIR = RUNTIME_DIR / "chrome-profile"
 APP_HOST = os.environ.get("APP_HOST", "127.0.0.1")
 DEBUG_HOST = os.environ.get("YTMUSIC_DEBUG_HOST", "127.0.0.1")
@@ -110,6 +111,10 @@ class StudioState:
                 / "MacOS"
                 / "Google Chrome"
             ),
+            shutil.which("google-chrome"),
+            shutil.which("google-chrome-stable"),
+            shutil.which("chromium"),
+            shutil.which("chromium-browser"),
         ]
         for candidate in candidates:
             if candidate and Path(candidate).exists():
