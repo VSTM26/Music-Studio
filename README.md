@@ -59,6 +59,10 @@ Or double-click:
 
 `run-liked-music-studio.cmd`
 
+If you prefer a classic batch file in Explorer, you can also double-click:
+
+`run-liked-music-studio.bat`
+
 The Windows launcher creates `.venv` automatically if needed, installs `requirements.txt`, and then starts the app.
 It also checks GitHub for updates first and pulls in the newest files automatically.
 
