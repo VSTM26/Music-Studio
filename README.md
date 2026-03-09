@@ -25,11 +25,14 @@ The app runs on the user's machine and does not use personal API keys.
 
 If you want the simplest setup, use the packaged GitHub releases:
 
-- Windows: download the `windows-x64` release archive, extract it, then double-click `run-liked-music-studio.bat`
-- macOS: download the matching `macos` release archive, extract it, then run `chmod +x run-liked-music-studio.command` once and open it
-- Linux: download the `linux-x64` release archive, extract it, then run `chmod +x run-liked-music-studio.sh` once and start it
+- Start from the latest release page: [Music-Studio releases](https://github.com/VSTM26/Music-Studio/releases/latest)
+- Windows: download the `windows-x64` archive, extract it, then double-click `run-liked-music-studio.bat`
+- macOS Intel: download the `macos-x64` archive, extract it, then run `chmod +x run-liked-music-studio.command` once and open it
+- macOS Apple Silicon: download the `macos-arm64` archive, extract it, then run `chmod +x run-liked-music-studio.command` once and open it
+- Linux: download the `linux-x64` archive, extract it, then run `chmod +x run-liked-music-studio.sh` once and start it
 
 The packaged launchers check GitHub for newer releases and will run a newer cached build automatically when one exists.
+Use the packaged launcher instead of starting the raw binary directly if you want that auto-update behavior.
 
 ## Source install
 
@@ -75,6 +78,8 @@ Or:
 chmod +x run-liked-music-studio.command
 ./run-liked-music-studio.command
 ```
+
+If macOS blocks the launcher the first time, use `Control-click > Open`, or go to `System Settings > Privacy & Security > Open Anyway`.
 
 ### Linux
 
@@ -123,6 +128,7 @@ If you launch from source with one of the repo launchers, it creates `.venv` whe
 - `yt-dlp` installs through `requirements.txt`.
 - MP3 extraction can use a system `ffmpeg` or the bundled `imageio-ffmpeg` fallback.
 - If MP3 extraction is requested and `ffmpeg` or `ffprobe` is missing, the app tries to install a full FFmpeg toolchain with `winget` on Windows or `brew` on macOS.
+- If port `4173` is busy, the app automatically moves to the next open local port and logs the new URL.
 - On Linux, Chrome can be discovered as `google-chrome`, `google-chrome-stable`, `chromium`, or `chromium-browser`.
 - Set `MUSIC_STUDIO_SKIP_UPDATE=1` if you need to skip the source updater while troubleshooting.
 
