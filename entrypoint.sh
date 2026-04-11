@@ -6,6 +6,9 @@ echo "Starting Xvfb..."
 Xvfb :99 -screen 0 1280x800x24 &
 export DISPLAY=:99
 
+# Wait for Xvfb to be ready
+sleep 2
+
 # 2. Start a simple window manager (so Chrome has a border/title)
 echo "Starting Fluxbox..."
 fluxbox &
