@@ -11,6 +11,8 @@ REQUIRED_MODULES = {
     "websocket-client": "websocket",
     "yt-dlp": "yt_dlp",
     "imageio-ffmpeg": "imageio_ffmpeg",
+    "ytmusic": "ytmusic",
+    "google-auth-oauthlib": "google_auth_oauthlib",
 }
 
 

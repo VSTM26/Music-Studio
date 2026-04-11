@@ -40,6 +40,9 @@ const elements = {
   directDownloadBtn: document.querySelector('#directDownloadBtn'),
   launchBrowserDirectBtn: document.querySelector('#launchBrowserDirectBtn'),
   directLinkSummary: document.querySelector('#directLinkSummary'),
+  authStatusText: document.querySelector('#authStatusText'),
+  authSignInBtn: document.querySelector('#authSignInBtn'),
+  authSignOutBtn: document.querySelector('#authSignOutBtn'),
   selectionSummary: document.querySelector('#selectionSummary'),
   fileLinks: document.querySelector('#fileLinks'),
   summaryBanner: document.querySelector('#summaryBanner'),
@@ -712,6 +715,77 @@ if (elements.launchBrowserDirectBtn) {
   });
 }
 
+// OAuth Event Listeners
+if (elements.authSignInBtn) {
+  elements.authSignInBtn.addEventListener('click', async () => {
+    try {
+      const response = await fetch('/api/auth/start');
+      const data = await response.json();
+      if (data.auth_url) {
+        // Open OAuth URL in new window/tab
+        const width = 500;
+        const height = 600;
+        const left = (window.innerWidth - width) / 2;
+        const top = (window.innerHeight - height) / 2;
+        const oauthWindow = window.open(
+          data.auth_url,
+          'GoogleOAuth',
+          `width=${width},height=${height},left=${left},top=${top}`
+        );
+        // Poll for auth completion
+        const checkInterval = setInterval(async () => {
+          if (!oauthWindow || oauthWindow.closed) {
+            clearInterval(checkInterval);
+            await refreshAuthStatus();
+          }
+        }, 500);
+      } else if (data.message) {
+        alert('OAuth not configured: ' + data.message);
+      }
+    } catch (error) {
+      console.error('OAuth error:', error);
+    }
+  });
+}
+
+if (elements.authSignOutBtn) {
+  elements.authSignOutBtn.addEventListener('click', async () => {
+    try {
+      await fetch('/api/auth/logout', { method: 'POST' });
+      await refreshAuthStatus();
+    } catch (error) {
+      console.error('Sign out error:', error);
+    }
+  });
+}
+
+// Check auth status on page load
+async function refreshAuthStatus() {
+  try {
+    const response = await fetch('/api/auth/status');
+    const data = await response.json();
+    updateAuthUI(data.authenticated);
+  } catch (error) {
+    console.error('Auth status check error:', error);
+  }
+}
+
+function updateAuthUI(authenticated) {
+  if (!elements.authStatusText || !elements.authSignInBtn || !elements.authSignOutBtn) {
+    return;
+  }
+  
+  if (authenticated) {
+    elements.authStatusText.textContent = '✓ Signed in with Google - Downloads will use your YouTube account authorization.';
+    elements.authSignInBtn.style.display = 'none';
+    elements.authSignOutBtn.style.display = 'inline-block';
+  } else {
+    elements.authStatusText.textContent = 'Sign in with Google to enable authorized YouTube downloads (recommended for better reliability).';
+    elements.authSignInBtn.style.display = 'inline-block';
+    elements.authSignOutBtn.style.display = 'none';
+  }
+}
+
 // --- LANDING SCREEN ROUTING LOGIC ---
 function switchWorkspaceMod(mode) {
   if (!elements.landingScreen || !elements.workspaceScreen) return;
@@ -820,5 +894,6 @@ elements.selectAllTracks.addEventListener('change', (event) => {
 
 await refreshStatus();
 await loadResults();
+await refreshAuthStatus();
 renderDirectLinkSummary();
 setInterval(refreshStatus, 2500);

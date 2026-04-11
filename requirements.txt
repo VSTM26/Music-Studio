@@ -1,3 +1,5 @@
 websocket-client
 yt-dlp
 imageio-ffmpeg
+ytmusic
+google-auth-oauthlib

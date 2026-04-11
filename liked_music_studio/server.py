@@ -7,6 +7,7 @@ import shutil
 import subprocess
 import sys
 import threading
+import urllib.parse
 import webbrowser
 from dataclasses import dataclass
 from datetime import datetime, timezone
@@ -27,6 +28,7 @@ from .devtools import (
 )
 from .downloader import download_tracks, download_urls, get_tool_status
 from .exports import load_latest_results, load_manifest, write_exports
+from . import oauth
 
 
 BASE_DIR = Path(__file__).resolve().parents[1]
@@ -610,6 +612,8 @@ class StudioHandler(BaseHTTPRequestHandler):
 
     def do_GET(self) -> None:
         path = urlparse(self.path).path
+        query_params = urllib.parse.parse_qs(urlparse(self.path).query)
+        
         if path == "/api/status":
             self._send_json(HTTPStatus.OK, self.state.build_status_payload())
             return
@@ -619,6 +623,39 @@ class StudioHandler(BaseHTTPRequestHandler):
                 self._send_json(HTTPStatus.NOT_FOUND, {"message": "No export found yet."})
                 return
             self._send_json(HTTPStatus.OK, payload)
+            return
+        if path == "/api/auth/status":
+            self._send_json(HTTPStatus.OK, {
+                "authenticated": oauth.is_authenticated(),
+                "configured": oauth.is_configured(),
+            })
+            return
+        if path == "/api/auth/start":
+            auth_url = oauth.get_google_oauth_url()
+            if not auth_url:
+                self._send_json(HTTPStatus.BAD_REQUEST, {
+                    "message": "OAuth is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables."
+                })
+                return
+            self._send_json(HTTPStatus.OK, {"auth_url": auth_url})
+            return
+        if path == "/api/auth/callback":
+            code = (query_params.get("code") or [None])[0]
+            state = (query_params.get("state") or [None])[0]
+            if not code or not state:
+                self._send_text(HTTPStatus.BAD_REQUEST, "Missing code or state parameter.")
+                return
+            if oauth.exchange_code_for_token(code, state):
+                # Redirect to home page on success
+                self.send_response(HTTPStatus.FOUND)
+                self.send_header("Location", f"/?auth=success")
+                self.end_headers()
+            else:
+                self._send_text(HTTPStatus.UNAUTHORIZED, "Failed to exchange code for token.")
+            return
+        if path == "/api/auth/logout":
+            oauth.clear_oauth_token()
+            self._send_json(HTTPStatus.OK, {"message": "Logged out."})
             return
         if path.startswith("/downloads/"):
             self._serve_download(unquote(path[len("/downloads/") :]))
@@ -636,6 +673,10 @@ class StudioHandler(BaseHTTPRequestHandler):
                     HTTPStatus.OK,
                     {"ok": True, "message": "Source updated.", "source": source},
                 )
+                return
+            if path == "/api/auth/logout":
+                oauth.clear_oauth_token()
+                self._send_json(HTTPStatus.OK, {"ok": True, "message": "Logged out."})
                 return
             if path == "/api/launch-browser":
                 chrome_path = self.state.launch_guided_chrome()

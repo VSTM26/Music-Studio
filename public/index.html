@@ -186,6 +186,11 @@
             <p class="eyebrow">Direct Links</p>
             <h2>Drop in links you already have</h2>
           </div>
+          <div class="auth-status">
+            <p id="authStatusText" class="selection-summary"></p>
+            <button id="authSignInBtn" class="action action-primary" style="display: none;">Sign In with Google</button>
+            <button id="authSignOutBtn" class="action action-ghost" style="display: none;">Sign Out</button>
+          </div>
           <div class="direct-grid">
             <div class="direct-copy">
               <p class="selection-summary">
@@ -194,7 +199,7 @@
               </p>
               <textarea id="directUrls" class="direct-textarea" placeholder="Paste one or more URLs here, one per line&#10;https://www.youtube.com/watch?v=...&#10;https://music.youtube.com/watch?v=..."></textarea>
               <p class="selection-summary subtle-note">
-                If a pasted YouTube link needs sign-in, age access, or private access, open Guided Chrome first so Music Studio can reuse that session.
+                For best results with YouTube links, sign in with Google to authorize downloads. For videos with special restrictions, you can also open Guided Chrome to reuse that session.
               </p>
             </div>
             <div class="direct-actions">

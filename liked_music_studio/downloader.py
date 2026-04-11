@@ -449,14 +449,12 @@ class _YtDlpLogger:
         self._log(text, kind)
         if "SIGN IN TO CONFIRM YOUR AGE" in upper or "USE --COOKIES-FROM-BROWSER" in upper:
             self._log(
-                "YouTube still wants an authenticated browser session. Reopen Guided Chrome from the app, "
-                "make sure you are signed in with the account that can view the track, and then retry the download.",
+                "YouTube wants an authenticated browser session. Make sure you're signed into YouTube in your Chrome browser, then retry the download.",
                 "error",
             )
         if "COULD NOT COPY CHROME COOKIE DATABASE" in upper or "FAILED TO LOAD COOKIES" in upper:
             self._log(
-                "yt-dlp could not read Chrome's live cookie database. Music Studio will now prefer exported Guided Chrome cookies, "
-                "so restart the app and retry the download.",
+                "yt-dlp could not read Chrome's cookie database. Check that Chrome is closed, then retry the download.",
                 "error",
             )
 
