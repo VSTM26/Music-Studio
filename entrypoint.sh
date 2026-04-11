@@ -9,24 +9,23 @@ export DISPLAY=:99
 # Wait for Xvfb to be ready
 sleep 2
 
-# 2. Start a simple window manager (so Chrome has a border/title)
+# 2. Start Fluxbox
 echo "Starting Fluxbox..."
 fluxbox &
 
-# 3. Start x11vnc (the bridge from X11 to VNC)
+# 3. Start x11vnc
 echo "Starting VNC server..."
-x11vnc -display :99 -forever -shared -nopw -bg -listen localhost -xkb
+x11vnc -display :99 -forever -shared -nopw -bg -listen localhost
 
-# 4. Start websockify (VNC to WebSockets for noVNC)
+# 4. Start websockify (VNC to WebSockets)
 echo "Starting websockify..."
 /opt/novnc/utils/novnc_proxy --vnc localhost:5900 --listen 8080 &
 
-# 5. Start Nginx
-echo "Starting Nginx..."
-service nginx start
-
-# 6. Start the Python Backend (Music Studio)
+# 5. Start the Python Backend in the background
 echo "Starting Music Studio..."
-# We use fixed port 4173 because Nginx proxies to it
 export PORT=4173
-python main.py
+python main.py &
+
+# 6. Start Nginx in the FOREGROUND (keeps the container alive)
+echo "Starting Nginx..."
+nginx -g 'daemon off;'

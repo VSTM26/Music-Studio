@@ -58,8 +58,9 @@ RUN chmod +x entrypoint.sh
 ENV DISPLAY=:99
 ENV PYTHONUNBUFFERED=1
 ENV NO_OPEN_BROWSER=1
+ENV PORT=80
 
-# The app runs on 4173 internally, Nginx exposes 80 (standard for Render)
+# The container exposes 80 to Render
 EXPOSE 80
 
 # Start everything via entrypoint
