@@ -359,6 +359,7 @@ class StudioState:
             "--new-window",
             "--disable-first-run-ui",
             "--no-default-browser-check",
+            "--no-sandbox",
             source_url,
         ]
         popen_kwargs: dict[str, Any] = {
