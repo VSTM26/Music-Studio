@@ -118,7 +118,7 @@ def write_exports(
     manifest_path = output_dir / MANIFEST_NAME
 
     txt_lines = [
-        f"{row['index']}. {row['title']}{f' - {row['artists']}' if row['artists'] else ''}".rstrip()
+        f"{row['index']}. {row['title']}" + (f" - {row['artists']}" if row['artists'] else "").rstrip()
         for row in rows
     ]
     txt_body = "\n".join(txt_lines)
