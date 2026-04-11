@@ -52,6 +52,10 @@ const elements = {
   tracksTable: document.querySelector('#tracksTable'),
   trackSearch: document.querySelector('#trackSearch'),
   selectAllTracks: document.querySelector('#selectAllTracks'),
+  remoteBrowserPanel: document.querySelector('#remoteBrowserPanel'),
+  vncIframe: document.querySelector('#vncIframe'),
+  refreshVncBtn: document.querySelector('#refreshVncBtn'),
+  hideMonitorBtn: document.querySelector('#hideMonitorBtn'),
 };
 
 function formatTime(value) {
@@ -597,12 +601,27 @@ elements.chooseFolderBtn.addEventListener('click', () => {
 });
 
 elements.launchBrowserBtn.addEventListener('click', () => {
+  if (elements.remoteBrowserPanel) {
+    elements.remoteBrowserPanel.style.display = 'block';
+  }
   invokeAction(
     '/api/launch-browser',
     elements.launchBrowserBtn,
     getLaunchLabel,
     () => `Opening ${getSourceLabel(getActiveSource())}...`,
   );
+});
+
+elements.refreshVncBtn?.addEventListener('click', () => {
+  if (elements.vncIframe) {
+    elements.vncIframe.src = elements.vncIframe.src;
+  }
+});
+
+elements.hideMonitorBtn?.addEventListener('click', () => {
+  if (elements.remoteBrowserPanel) {
+    elements.remoteBrowserPanel.style.display = 'none';
+  }
 });
 
 elements.runExportBtn.addEventListener('click', () => {

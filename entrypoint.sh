@@ -18,8 +18,12 @@ x11vnc -display :99 -forever -shared -nopw -bg -listen localhost -xkb
 echo "Starting websockify..."
 /opt/novnc/utils/novnc_proxy --vnc localhost:5900 --listen 8080 &
 
-# 5. Start the Python Backend (Music Studio)
+# 5. Start Nginx
+echo "Starting Nginx..."
+service nginx start
+
+# 6. Start the Python Backend (Music Studio)
 echo "Starting Music Studio..."
-# We use the PORT environment variable provided by Render
-export PORT=${PORT:-4173}
+# We use fixed port 4173 because Nginx proxies to it
+export PORT=4173
 python main.py

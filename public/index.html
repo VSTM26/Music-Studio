@@ -189,6 +189,25 @@
           </div>
         </section>
 
+        <section class="panel remote-monitor-card" id="remoteBrowserPanel" style="display: none;">
+          <div class="section-heading">
+            <p class="eyebrow">Remote Browser Monitor</p>
+            <h2>Cloud Session View</h2>
+          </div>
+          <div class="monitor-container">
+            <p class="selection-summary">
+              This window shows the Chrome session running on the server. Interact with it directly to sign in or solve challenges.
+            </p>
+            <div class="iframe-wrapper">
+              <iframe id="vncIframe" src="/vnc/vnc.html?autoconnect=true&resize=scale" width="100%" height="600" style="border: none; border-radius: 8px;"></iframe>
+            </div>
+            <div class="monitor-actions">
+              <button id="refreshVncBtn" class="action action-ghost">Refresh Stream</button>
+              <button id="hideMonitorBtn" class="action action-ghost">Hide Monitor</button>
+            </div>
+          </div>
+        </section>
+
         <section class="panel logs-card">
           <div class="section-heading">
             <p class="eyebrow">Process Log</p>

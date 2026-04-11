@@ -13,6 +13,7 @@ RUN apt-get update && apt-get install -y \
     novnc \
     python3-websockify \
     ffmpeg \
+    nginx \
     libnss3 \
     libatk1.0-0 \
     libatk-bridge2.0-0 \
@@ -44,6 +45,9 @@ WORKDIR /app
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
+# Copy Nginx config
+COPY nginx.conf /etc/nginx/sites-available/default
+
 # Copy the rest of the application
 COPY . .
 
@@ -55,9 +59,8 @@ ENV DISPLAY=:99
 ENV PYTHONUNBUFFERED=1
 ENV NO_OPEN_BROWSER=1
 
-# The app runs on 4173, and we need to expose it
-EXPOSE 4173
-EXPOSE 8080
+# The app runs on 4173 internally, Nginx exposes 80 (standard for Render)
+EXPOSE 80
 
 # Start everything via entrypoint
 ENTRYPOINT ["./entrypoint.sh"]
