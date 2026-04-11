@@ -41,6 +41,12 @@ def _resolve_ffmpeg_path(require_binary: bool = False) -> tuple[str | None, str 
     if system_path:
         return system_path, "system"
 
+    # Fallback to common winget installation paths on Windows
+    if os.name == "nt":
+        winget_path = _find_winget_binary("ffmpeg")
+        if winget_path:
+            return str(winget_path), "winget"
+
     portable_path = _portable_binary_path("ffmpeg")
     if portable_path.exists():
         return str(portable_path), "portable"
@@ -64,10 +70,38 @@ def _resolve_ffprobe_path() -> tuple[str | None, str | None]:
     system_path = which("ffprobe")
     if system_path:
         return system_path, "system"
+
+    # Fallback to common winget installation paths on Windows
+    if os.name == "nt":
+        winget_path = _find_winget_binary("ffprobe")
+        if winget_path:
+            return str(winget_path), "winget"
+
     portable_path = _portable_binary_path("ffprobe")
     if portable_path.exists():
         return str(portable_path), "portable"
     return None, None
+
+
+def _find_winget_binary(tool_name: str) -> Path | None:
+    local_app_data = os.environ.get("LOCALAPPDATA")
+    if not local_app_data:
+        return None
+    winget_root = Path(local_app_data) / "Microsoft" / "WinGet" / "Packages"
+    if not winget_root.exists():
+        return None
+
+    # Search for yt-dlp.FFmpeg or Gyan.FFmpeg folders
+    suffix = ".exe" if os.name == "nt" else ""
+    for package_dir in winget_root.glob("*FFmpeg*"):
+        for bin_path in package_dir.rglob(f"bin/{tool_name}{suffix}"):
+            if bin_path.exists():
+                return bin_path
+        # Some packages might have it directly or in other subfolders
+        for binary in package_dir.rglob(f"{tool_name}{suffix}"):
+            if binary.exists():
+                return binary
+    return None
 
 
 def _portable_binary_path(tool_name: str) -> Path:
@@ -595,6 +629,7 @@ def _download_url_batch(
     ydl_options: dict[str, Any] = {
         "ignoreerrors": True,
         "no_warnings": True,
+        "js_runtimes": {"node": {}, "deno": {}},
         "paths": {"home": str(downloads_dir)},
         "outtmpl": {"default": "%(title)s [%(id)s].%(ext)s"},
         "logger": logger,
