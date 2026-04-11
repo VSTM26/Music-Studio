@@ -630,6 +630,7 @@ def _download_url_batch(
         "ignoreerrors": True,
         "no_warnings": True,
         "js_runtimes": {"node": {}, "deno": {}},
+        "remote_components": ["ejs:github"],
         "paths": {"home": str(downloads_dir)},
         "outtmpl": {"default": "%(title)s [%(id)s].%(ext)s"},
         "logger": logger,
