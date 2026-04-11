@@ -415,19 +415,12 @@ def _build_cookie_options(log: Callable[[str, str], None], urls: list[str]) -> d
     if cookie_file:
         return {"cookiefile": str(cookie_file)}
 
-    if not _has_guided_chrome_cookies(GUIDED_CHROME_PROFILE_DIR):
-        log(
-            "Guided Chrome cookies were not found yet. Public YouTube tracks may still download, "
-            "but age-restricted or private videos need a signed-in Guided Chrome session.",
-            "info",
-        )
-        return {}
-
     log(
-        "Falling back to direct cookies from the Guided Chrome profile so yt-dlp can access signed-in YouTube playback.",
+        "Direct downloads will proceed without cookies because Guided Chrome is closed or unavailable. "
+        "If your download fails because it requires Sign In, reopen Guided Chrome and stay signed in.",
         "info",
     )
-    return {"cookiesfrombrowser": ("chrome", str(GUIDED_CHROME_PROFILE_DIR), None, None)}
+    return {}
 
 
 class _YtDlpLogger:
@@ -638,6 +631,7 @@ def _download_url_batch(
     }
     ydl_options.update(cookie_options)
     if extract_audio:
+        ydl_options["format"] = "bestaudio/best"
         ydl_options["ffmpeg_location"] = str(Path(ffmpeg_path).parent)
         ydl_options["postprocessors"] = [
             {
@@ -646,6 +640,8 @@ def _download_url_batch(
                 "preferredquality": "0",
             }
         ]
+    else:
+        ydl_options["format"] = "bestvideo[ext=mp4]+bestaudio[ext=m4a]/best[ext=mp4]/best"
 
     log(f"Starting yt-dlp for {len(normalized_urls)} item(s).", "info")
     with YoutubeDL(ydl_options) as downloader:
