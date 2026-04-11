@@ -38,7 +38,7 @@ const elements = {
   directUrls: document.querySelector('#directUrls'),
   directExtractAudio: document.querySelector('#directExtractAudio'),
   directDownloadBtn: document.querySelector('#directDownloadBtn'),
-  clearDirectUrlsBtn: document.querySelector('#clearDirectUrlsBtn'),
+  launchBrowserDirectBtn: document.querySelector('#launchBrowserDirectBtn'),
   directLinkSummary: document.querySelector('#directLinkSummary'),
   selectionSummary: document.querySelector('#selectionSummary'),
   fileLinks: document.querySelector('#fileLinks'),
@@ -56,6 +56,16 @@ const elements = {
   vncIframe: document.querySelector('#vncIframe'),
   refreshVncBtn: document.querySelector('#refreshVncBtn'),
   hideMonitorBtn: document.querySelector('#hideMonitorBtn'),
+  
+  // New Landing Screen Routing
+  navDirectDownload: document.querySelector('#navDirectDownload'),
+  navExportMusic: document.querySelector('#navExportMusic'),
+  landingScreen: document.querySelector('#landingScreen'),
+  workspaceScreen: document.querySelector('#workspaceScreen'),
+  heroExportPanel: document.querySelector('#heroExportPanel'),
+  exportStepsPanel: document.querySelector('#exportStepsPanel'),
+  directLinkPanel: document.querySelector('#directLinkPanel'),
+  navBackBtn: document.querySelector('#navBackBtn'),
 };
 
 function formatTime(value) {
@@ -498,7 +508,9 @@ function syncActionButtons() {
   }
   elements.directDownloadBtn.disabled =
     exportRunning || downloadRunning || !ytDlpAvailable || directUrls.length === 0;
-  elements.clearDirectUrlsBtn.disabled = directUrls.length === 0;
+  if (elements.launchBrowserDirectBtn) {
+    elements.launchBrowserDirectBtn.disabled = exportRunning;
+  }
   elements.directExtractAudio.disabled = exportRunning || downloadRunning || !ytDlpAvailable;
   elements.directUrls.disabled = exportRunning || downloadRunning;
 }
@@ -686,10 +698,68 @@ elements.clearSelectionBtn.addEventListener('click', () => {
   syncActionButtons();
 });
 
-elements.clearDirectUrlsBtn.addEventListener('click', () => {
-  elements.directUrls.value = '';
-  renderDirectLinkSummary();
-  syncActionButtons();
+if (elements.launchBrowserDirectBtn) {
+  elements.launchBrowserDirectBtn.addEventListener('click', () => {
+    if (elements.remoteBrowserPanel) {
+      elements.remoteBrowserPanel.style.display = 'block';
+    }
+    invokeAction(
+      '/api/launch-browser',
+      elements.launchBrowserDirectBtn,
+      'Open Guided Chrome (Solve Bot Blocks)',
+      () => `Opening Chrome...`,
+    );
+  });
+}
+
+// --- LANDING SCREEN ROUTING LOGIC ---
+function switchWorkspaceMod(mode) {
+  if (!elements.landingScreen || !elements.workspaceScreen) return;
+  
+  elements.landingScreen.style.display = 'none';
+  elements.workspaceScreen.style.display = 'block';
+  window.scrollTo({ top: 0 });
+  
+  const statusCard = document.querySelector('.status-card');
+  const filesCard = document.querySelector('.files-card');
+  const summaryCard = document.querySelector('.summary-card');
+  const mediaCard = document.querySelector('.media-card');
+  const tracksCard = document.querySelector('.tracks-card');
+  
+  if (mode === 'direct') {
+    if (elements.heroExportPanel) elements.heroExportPanel.style.display = 'none';
+    if (elements.exportStepsPanel) elements.exportStepsPanel.style.display = 'none';
+    if (elements.directLinkPanel) elements.directLinkPanel.style.display = 'block';
+    
+    // Hide export specific UI
+    if (statusCard) statusCard.style.display = 'none';
+    if (filesCard) filesCard.style.display = 'none';
+    if (summaryCard) summaryCard.style.display = 'none';
+    if (mediaCard) mediaCard.style.display = 'none';
+    if (tracksCard) tracksCard.style.display = 'none';
+  } else {
+    // mode === 'export'
+    if (elements.heroExportPanel) elements.heroExportPanel.style.display = 'grid';
+    if (elements.exportStepsPanel) elements.exportStepsPanel.style.display = 'block';
+    // Hide direct link panel
+    if (elements.directLinkPanel) elements.directLinkPanel.style.display = 'none';
+    
+    // Show export specific UI
+    if (statusCard) statusCard.style.display = 'block';
+    if (filesCard) filesCard.style.display = 'block';
+    if (summaryCard) summaryCard.style.display = 'block';
+    if (mediaCard) mediaCard.style.display = 'block';
+    if (tracksCard) tracksCard.style.display = 'block';
+  }
+}
+
+elements.navDirectDownload?.addEventListener('click', () => switchWorkspaceMod('direct'));
+elements.navExportMusic?.addEventListener('click', () => switchWorkspaceMod('export'));
+
+elements.navBackBtn?.addEventListener('click', () => {
+  if (!elements.landingScreen || !elements.workspaceScreen) return;
+  elements.workspaceScreen.style.display = 'none';
+  elements.landingScreen.style.display = 'flex';
 });
 
 elements.directUrls.addEventListener('input', () => {
