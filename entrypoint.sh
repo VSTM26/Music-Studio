@@ -13,9 +13,9 @@ sleep 2
 echo "Starting Fluxbox..."
 fluxbox &
 
-# 3. Start x11vnc
+# 3. Start x11vnc in a resilient background loop to survive slow Xvfb startups
 echo "Starting VNC server..."
-x11vnc -display :99 -forever -shared -nopw -bg -listen localhost
+x11vnc -display :99 -forever -shared -nopw -loop &
 
 # 4. Start websockify (VNC to WebSockets)
 echo "Starting websockify..."
