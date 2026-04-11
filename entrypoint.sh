@@ -3,7 +3,7 @@ set -e
 
 # 1. Start Xvfb (The virtual screen)
 echo "Starting Xvfb..."
-Xvfb :99 -screen 0 1280x800x24 &
+Xvfb :99 -screen 0 1280x800x24 -ac &
 export DISPLAY=:99
 
 # Wait for Xvfb to be ready
