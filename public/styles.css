@@ -204,6 +204,7 @@ code {
 .summary-card,
 .media-card,
 .direct-card,
+.remote-monitor-card,
 .logs-card,
 .tracks-card {
   padding: 24px;
@@ -227,6 +228,7 @@ code {
 }
 
 .direct-card,
+.remote-monitor-card,
 .logs-card,
 .tracks-card {
   grid-column: span 12;
@@ -652,6 +654,7 @@ tbody tr:hover {
   .summary-card,
   .media-card,
   .direct-card,
+  .remote-monitor-card,
   .logs-card,
   .tracks-card {
     grid-column: span 1;
@@ -675,6 +678,7 @@ tbody tr:hover {
   .summary-card,
   .media-card,
   .direct-card,
+  .remote-monitor-card,
   .logs-card,
   .tracks-card {
     padding: 20px;
