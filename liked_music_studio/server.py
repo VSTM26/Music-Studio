@@ -613,6 +613,23 @@ class StudioHandler(BaseHTTPRequestHandler):
     def do_GET(self) -> None:
         path = urlparse(self.path).path
         query_params = urllib.parse.parse_qs(urlparse(self.path).query)
+
+        # Temporary debug logging: record incoming requests for diagnosis
+        try:
+            log_file = RUNTIME_DIR / "incoming_requests.log"
+            log_file.parent.mkdir(parents=True, exist_ok=True)
+            with log_file.open("a", encoding="utf-8") as f:
+                from datetime import datetime as _dt
+                f.write(f"{_dt.utcnow().isoformat()}Z {self.client_address} {self.command} {self.path}\n")
+                for name, value in self.headers.items():
+                    f.write(f"{name}: {value}\n")
+                f.write("\n")
+        except Exception:
+            pass
+
+        # Normalize path to accept optional trailing slash (helps proxy differences)
+        if path != "/" and path.endswith("/"):
+            path = path.rstrip("/")
         
         if path == "/api/status":
             self._send_json(HTTPStatus.OK, self.state.build_status_payload())
