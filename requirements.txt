@@ -1,4 +1,2 @@
-websocket-client
 yt-dlp
 imageio-ffmpeg
-google-auth-oauthlib

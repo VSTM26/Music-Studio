@@ -8,10 +8,8 @@ from pathlib import Path
 
 BASE_DIR = Path(__file__).resolve().parent
 REQUIRED_MODULES = {
-    "websocket-client": "websocket",
     "yt-dlp": "yt_dlp",
     "imageio-ffmpeg": "imageio_ffmpeg",
-    "google-auth-oauthlib": "google_auth_oauthlib",
 }
 
 

@@ -1,75 +1,48 @@
-const DEFAULT_SOURCE_LABELS = {
-  ytmusic: 'YouTube Music',
-  spotify: 'Spotify',
-};
-
 const state = {
   status: null,
-  results: null,
-  search: '',
-  selectedKeys: new Set(),
+  folderHandle: null,
+  folderName: '',
+  sync: {
+    running: false,
+    completedRunId: null,
+    failedRunId: null,
+    status: 'Waiting for a completed download job.',
+    detail: 'Choose a local folder so Music Studio can save finished files automatically when the server job completes.',
+  },
 };
 
 const elements = {
-  sourceYtMusicBtn: document.querySelector('#sourceYtMusicBtn'),
-  sourceSpotifyBtn: document.querySelector('#sourceSpotifyBtn'),
-  chooseFolderBtn: document.querySelector('#chooseFolderBtn'),
-  launchBrowserBtn: document.querySelector('#launchBrowserBtn'),
-  runExportBtn: document.querySelector('#runExportBtn'),
-  resetSessionBtn: document.querySelector('#resetSessionBtn'),
-  chromeStatus: document.querySelector('#chromeStatus'),
-  chromeDetail: document.querySelector('#chromeDetail'),
-  debugStatus: document.querySelector('#debugStatus'),
-  debugDetail: document.querySelector('#debugDetail'),
-  exportStatus: document.querySelector('#exportStatus'),
-  exportDetail: document.querySelector('#exportDetail'),
-  resultStatus: document.querySelector('#resultStatus'),
-  resultDetail: document.querySelector('#resultDetail'),
-  downloadStatus: document.querySelector('#downloadStatus'),
-  downloadDetail: document.querySelector('#downloadDetail'),
-  toolStatus: document.querySelector('#toolStatus'),
-  toolDetail: document.querySelector('#toolDetail'),
-  outputFolderStatus: document.querySelector('#outputFolderStatus'),
-  outputFolderDetail: document.querySelector('#outputFolderDetail'),
-  downloadSelectedBtn: document.querySelector('#downloadSelectedBtn'),
-  downloadAllBtn: document.querySelector('#downloadAllBtn'),
-  clearSelectionBtn: document.querySelector('#clearSelectionBtn'),
-  extractAudio: document.querySelector('#extractAudio'),
-  directUrls: document.querySelector('#directUrls'),
-  directExtractAudio: document.querySelector('#directExtractAudio'),
-  directDownloadBtn: document.querySelector('#directDownloadBtn'),
-  launchBrowserDirectBtn: document.querySelector('#launchBrowserDirectBtn'),
-  directLinkSummary: document.querySelector('#directLinkSummary'),
+  authHeroStatus: document.querySelector('#authHeroStatus'),
+  toolHeroStatus: document.querySelector('#toolHeroStatus'),
+  jobHeroStatus: document.querySelector('#jobHeroStatus'),
   authStatusText: document.querySelector('#authStatusText'),
   authSignInBtn: document.querySelector('#authSignInBtn'),
   authSignOutBtn: document.querySelector('#authSignOutBtn'),
-  selectionSummary: document.querySelector('#selectionSummary'),
-  fileLinks: document.querySelector('#fileLinks'),
-  summaryBanner: document.querySelector('#summaryBanner'),
-  progressPanel: document.querySelector('#progressPanel'),
+  folderStatus: document.querySelector('#folderStatus'),
+  folderDetail: document.querySelector('#folderDetail'),
+  chooseFolderBtn: document.querySelector('#chooseFolderBtn'),
+  saveLatestBtn: document.querySelector('#saveLatestBtn'),
+  directUrls: document.querySelector('#directUrls'),
+  directExtractAudio: document.querySelector('#directExtractAudio'),
+  directSummary: document.querySelector('#directSummary'),
+  directDownloadBtn: document.querySelector('#directDownloadBtn'),
+  likedExtractAudio: document.querySelector('#likedExtractAudio'),
+  youtubeSummary: document.querySelector('#youtubeSummary'),
+  downloadLikedBtn: document.querySelector('#downloadLikedBtn'),
   progressLabel: document.querySelector('#progressLabel'),
   progressValue: document.querySelector('#progressValue'),
   progressFill: document.querySelector('#progressFill'),
   progressDetail: document.querySelector('#progressDetail'),
+  syncStatus: document.querySelector('#syncStatus'),
+  syncDetail: document.querySelector('#syncDetail'),
+  latestDownloadSummary: document.querySelector('#latestDownloadSummary'),
+  fileLinks: document.querySelector('#fileLinks'),
   logs: document.querySelector('#logs'),
-  tracksTable: document.querySelector('#tracksTable'),
-  trackSearch: document.querySelector('#trackSearch'),
-  selectAllTracks: document.querySelector('#selectAllTracks'),
-  remoteBrowserPanel: document.querySelector('#remoteBrowserPanel'),
-  vncIframe: document.querySelector('#vncIframe'),
-  refreshVncBtn: document.querySelector('#refreshVncBtn'),
-  hideMonitorBtn: document.querySelector('#hideMonitorBtn'),
-  
-  // New Landing Screen Routing
-  navDirectDownload: document.querySelector('#navDirectDownload'),
-  navExportMusic: document.querySelector('#navExportMusic'),
-  landingScreen: document.querySelector('#landingScreen'),
-  workspaceScreen: document.querySelector('#workspaceScreen'),
-  heroExportPanel: document.querySelector('#heroExportPanel'),
-  exportStepsPanel: document.querySelector('#exportStepsPanel'),
-  directLinkPanel: document.querySelector('#directLinkPanel'),
-  navBackBtn: document.querySelector('#navBackBtn'),
 };
+
+function supportsLocalFolder() {
+  return typeof window.showDirectoryPicker === 'function';
+}
 
 function formatTime(value) {
   return value ? new Date(value).toLocaleString() : 'Not yet';
@@ -92,7 +65,10 @@ function formatBytes(value) {
   if (value < 1024 * 1024) {
     return `${(value / 1024).toFixed(1)} KB`;
   }
-  return `${(value / (1024 * 1024)).toFixed(2)} MB`;
+  if (value < 1024 * 1024 * 1024) {
+    return `${(value / (1024 * 1024)).toFixed(2)} MB`;
+  }
+  return `${(value / (1024 * 1024 * 1024)).toFixed(2)} GB`;
 }
 
 function escapeHtml(value) {
@@ -101,34 +77,6 @@ function escapeHtml(value) {
     .replaceAll('<', '&lt;')
     .replaceAll('>', '&gt;')
     .replaceAll('"', '&quot;');
-}
-
-function getSourceLabel(source) {
-  return state.status?.sources?.labels?.[source] || DEFAULT_SOURCE_LABELS[source] || source;
-}
-
-function getActiveSource() {
-  return state.status?.sources?.active || 'ytmusic';
-}
-
-function getCurrentResultsSource() {
-  return state.results?.sourcePlatform || state.status?.latestExport?.sourcePlatform || null;
-}
-
-function getLaunchLabel() {
-  return `Open Guided Chrome for ${getSourceLabel(getActiveSource())}`;
-}
-
-function getExportLabel() {
-  return getActiveSource() === 'spotify' ? 'Export Spotify Likes' : 'Export YouTube Likes';
-}
-
-function getTracks() {
-  return state.results?.tracks || [];
-}
-
-function downloadsSupported() {
-  return Boolean(state.results?.downloadSupported ?? state.status?.latestExport?.downloadSupported);
 }
 
 function parseDirectUrls(rawValue) {
@@ -144,31 +92,20 @@ function getDirectUrls() {
   return parseDirectUrls(elements.directUrls?.value || '');
 }
 
-function getFilteredTracks() {
-  const tracks = getTracks();
-  const search = state.search.trim().toLowerCase();
-  if (!search) {
-    return tracks;
-  }
-
-  return tracks.filter((track) =>
-    [track.title, track.artists, track.album, track.meta, track.duration]
-      .filter(Boolean)
-      .some((value) => value.toLowerCase().includes(search)),
-  );
+function getLatestDownload() {
+  return state.status?.latestDownload || null;
 }
 
-function trimSelection() {
-  const validKeys = new Set(
-    getTracks()
-      .map((track) => track.trackKey)
-      .filter(Boolean),
-  );
-  for (const key of [...state.selectedKeys]) {
-    if (!validKeys.has(key)) {
-      state.selectedKeys.delete(key);
-    }
-  }
+function getAuth() {
+  return state.status?.auth || { configured: false, authenticated: false };
+}
+
+function getDownloadJob() {
+  return state.status?.download || {};
+}
+
+function getProgress() {
+  return state.status?.progress || null;
 }
 
 async function fetchJson(url, options = {}) {
@@ -189,96 +126,108 @@ async function fetchJson(url, options = {}) {
   return payload;
 }
 
-function renderSourceControls() {
-  const activeSource = getActiveSource();
-  elements.sourceYtMusicBtn.classList.toggle('is-active', activeSource === 'ytmusic');
-  elements.sourceSpotifyBtn.classList.toggle('is-active', activeSource === 'spotify');
-  elements.launchBrowserBtn.textContent = getLaunchLabel();
-  elements.runExportBtn.textContent = getExportLabel();
+function setSyncState(status, detail, extra = {}) {
+  state.sync = {
+    ...state.sync,
+    status,
+    detail,
+    ...extra,
+  };
+  renderSyncPanel();
 }
 
-function renderStatus() {
-  const { status } = state;
-  if (!status) {
+function renderHero() {
+  const auth = getAuth();
+  const tools = state.status?.tools || {};
+  const latest = getLatestDownload();
+  const ytDlpAvailable = Boolean(tools?.ytDlp?.available);
+  const audioReady = Boolean(tools?.audioExtraction?.available);
+
+  elements.authHeroStatus.textContent = auth.authenticated
+    ? 'Connected'
+    : auth.configured
+      ? 'Ready to sign in'
+      : 'Needs setup';
+  elements.toolHeroStatus.textContent = ytDlpAvailable
+    ? audioReady ? 'Media + MP3 ready' : 'Media ready'
+    : 'Unavailable';
+  elements.jobHeroStatus.textContent = latest
+    ? `Finished ${formatTime(latest.savedAt)}`
+    : getDownloadJob().running
+      ? 'Running now'
+      : 'Waiting';
+}
+
+function renderAuth() {
+  const auth = getAuth();
+  if (!auth.configured) {
+    elements.authStatusText.textContent =
+      'Google sign-in is not configured on the server yet. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and OAUTH_REDIRECT_URI on Render.';
+    elements.authSignInBtn.style.display = 'none';
+    elements.authSignOutBtn.style.display = 'none';
     return;
   }
 
-  const activeSource = getActiveSource();
-  const activeSourceLabel = getSourceLabel(activeSource);
-  const activeSourceTabOpen = activeSource === 'spotify'
-    ? status.debug.spotifyTabOpen
-    : status.debug.ytmusicTabOpen;
-  const activeSourceTabTitle = activeSource === 'spotify'
-    ? status.debug.spotifyTabTitle
-    : status.debug.ytmusicTabTitle;
-
-  renderSourceControls();
-
-  elements.chromeStatus.textContent = status.chrome.found ? 'Ready' : 'Missing';
-  elements.chromeDetail.textContent = status.chrome.found
-    ? status.chrome.path
-    : 'Install Chrome or set CHROME_PATH before launching the guided browser.';
-
-  elements.debugStatus.textContent = status.debug.connected ? 'Connected' : 'Offline';
-  elements.debugDetail.textContent = status.debug.connected
-    ? activeSourceTabOpen
-      ? `${status.debug.browser || 'Chrome'} | ${activeSourceTabTitle || `${activeSourceLabel} tab open`}`
-      : `${status.debug.browser || 'Chrome'} | Open Guided Chrome and sign in to ${activeSourceLabel}.`
-    : 'No Chrome DevTools session is listening on the local debug port yet.';
-
-  elements.exportStatus.textContent = status.export.running ? 'Running' : 'Idle';
-  elements.exportDetail.textContent = status.export.running
-    ? `Started ${formatTime(status.export.last_started_at)}`
-    : status.export.last_finished_at
-      ? `Last finished ${formatTime(status.export.last_finished_at)}`
-      : 'No export has been run in this session.';
-  if (status.export.last_error) {
-    elements.exportDetail.textContent += ` | ${status.export.last_error}`;
-  }
-
-  if (status.latestExport) {
-    const exportSourceLabel = status.latestExport.sourceLabel || getSourceLabel(status.latestExport.sourcePlatform);
-    elements.resultStatus.textContent = `${formatNumber(status.latestExport.exportedCount)} ${exportSourceLabel} tracks exported`;
-    elements.resultDetail.textContent = `Saved ${formatTime(status.latestExport.exportedAt)} from ${status.latestExport.title || exportSourceLabel}`;
+  if (auth.authenticated) {
+    elements.authStatusText.textContent =
+      'Google is connected. Music Studio can now read your YouTube liked videos.';
+    elements.authSignInBtn.style.display = 'none';
+    elements.authSignOutBtn.style.display = 'inline-flex';
   } else {
-    elements.resultStatus.textContent = 'No export yet';
-    elements.resultDetail.textContent = `Run the exporter after signing in to ${activeSourceLabel}.`;
+    elements.authStatusText.textContent =
+      'Sign in with Google if you want to pull from your YouTube likes. Pasted links can still be downloaded without signing in.';
+    elements.authSignInBtn.style.display = 'inline-flex';
+    elements.authSignOutBtn.style.display = 'none';
   }
-
-  elements.downloadStatus.textContent = status.download.running ? 'Running' : 'Idle';
-  const isDirectDownload = String(status.download.mode || '').startsWith('direct');
-  elements.downloadDetail.textContent = status.download.running
-    ? `Working on ${formatNumber(status.download.requested_count)} ${isDirectDownload ? 'link(s)' : 'track(s)'}`
-    : status.download.last_finished_at
-      ? `Last finished ${formatTime(status.download.last_finished_at)}`
-      : 'No media download has been started yet.';
-  if (status.download.last_error) {
-    elements.downloadDetail.textContent += ` | ${status.download.last_error}`;
-  }
-
-  const ytDlpAvailable = Boolean(status.tools?.ytDlp?.available);
-  const ffmpegAvailable = Boolean(status.tools?.ffmpeg?.available);
-  elements.toolStatus.textContent = ytDlpAvailable
-    ? ffmpegAvailable
-      ? 'Media and audio ready'
-      : 'Media ready'
-    : 'Downloads unavailable';
-  elements.toolDetail.textContent = ytDlpAvailable
-    ? `${ffmpegAvailable ? 'yt-dlp and ffmpeg are available for YouTube-based downloads.' : 'yt-dlp is available. Install ffmpeg if you want MP3 extraction.'} Exports use the signed-in browser session only, not API keys.`
-    : 'Run pip install -r requirements.txt to enable yt-dlp downloads. Exports themselves do not use API keys.';
-
-  elements.outputFolderStatus.textContent = status.output?.directory || 'Using the project output folder';
-  elements.outputFolderDetail.textContent = `Exports save here, and YouTube media downloads go into ${status.output?.downloadsDirectory || ''}`;
-
-  syncActionButtons();
 }
 
-function renderLiveProgress() {
-  const progress = state.status?.progress;
+function renderFolder() {
+  if (!supportsLocalFolder()) {
+    elements.folderStatus.textContent = 'Direct folder saving is unavailable in this browser.';
+    elements.folderDetail.textContent =
+      'Use Chrome or Edge for folder-based saving. You can still download the finished files manually below.';
+    return;
+  }
+
+  if (state.folderHandle && state.folderName) {
+    elements.folderStatus.textContent = `Saving into "${state.folderName}" on this device.`;
+    elements.folderDetail.textContent =
+      'Music Studio will automatically write finished files into this folder when each job completes.';
+    return;
+  }
+
+  elements.folderStatus.textContent = 'No local folder chosen yet.';
+  elements.folderDetail.textContent =
+    'Choose a folder now so finished files can be saved there automatically.';
+}
+
+function renderDirectSummary() {
+  const urls = getDirectUrls();
+  if (!urls.length) {
+    elements.directSummary.textContent = 'Paste one or more URLs to begin.';
+    return;
+  }
+  elements.directSummary.textContent =
+    `${formatNumber(urls.length)} URL(s) ready${elements.directExtractAudio.checked ? ' with MP3 extraction enabled' : ''}.`;
+}
+
+function renderYouTubeSummary() {
+  const auth = getAuth();
+  if (!auth.configured) {
+    elements.youtubeSummary.textContent = 'Google sign-in must be configured on the server first.';
+    return;
+  }
+  elements.youtubeSummary.textContent = auth.authenticated
+    ? `Music Studio will read your liked YouTube videos and ${elements.likedExtractAudio.checked ? 'extract MP3 audio' : 'prepare media files'} for local saving.`
+    : 'Sign in with Google to enable downloading from your YouTube likes.';
+}
+
+function renderProgress() {
+  const progress = getProgress();
   if (!progress) {
-    elements.progressLabel.textContent = 'Ready for the next run';
+    elements.progressLabel.textContent = 'Ready';
     elements.progressValue.textContent = 'Idle';
-    elements.progressDetail.textContent = 'Start an export or a direct-link download to see live progress here.';
+    elements.progressDetail.textContent = 'Paste links or connect YouTube to start.';
     elements.progressFill.classList.remove('is-indeterminate');
     elements.progressFill.style.width = '0%';
     return;
@@ -287,19 +236,6 @@ function renderLiveProgress() {
   elements.progressLabel.textContent = progress.label || 'Working...';
   elements.progressDetail.textContent = progress.detail || 'Music Studio is processing your request.';
 
-  if (!progress.running) {
-    if (typeof progress.percent === 'number') {
-      elements.progressValue.textContent = `${Math.round(progress.percent)}%`;
-      elements.progressFill.classList.remove('is-indeterminate');
-      elements.progressFill.style.width = `${Math.max(2, Math.min(100, progress.percent))}%`;
-    } else {
-      elements.progressValue.textContent = 'Idle';
-      elements.progressFill.classList.remove('is-indeterminate');
-      elements.progressFill.style.width = '0%';
-    }
-    return;
-  }
-
   if (typeof progress.percent === 'number') {
     elements.progressValue.textContent = `${Math.round(progress.percent)}%`;
     elements.progressFill.classList.remove('is-indeterminate');
@@ -307,54 +243,47 @@ function renderLiveProgress() {
     return;
   }
 
-  elements.progressValue.textContent = 'Live';
-  elements.progressFill.classList.add('is-indeterminate');
-  elements.progressFill.style.width = '';
+  elements.progressValue.textContent = progress.running ? 'Live' : 'Idle';
+  if (progress.running) {
+    elements.progressFill.classList.add('is-indeterminate');
+    elements.progressFill.style.width = '';
+  } else {
+    elements.progressFill.classList.remove('is-indeterminate');
+    elements.progressFill.style.width = '0%';
+  }
+}
+
+function renderSyncPanel() {
+  elements.syncStatus.textContent = state.sync.status;
+  elements.syncDetail.textContent = state.sync.detail;
 }
 
 function renderFiles() {
-  const latest = state.status?.latestExport;
+  const latest = getLatestDownload();
   if (!latest?.files?.length) {
+    elements.latestDownloadSummary.textContent = 'No completed job yet.';
     elements.fileLinks.className = 'file-links empty-state';
-    elements.fileLinks.textContent = 'Run an export to generate downloadable files.';
+    elements.fileLinks.textContent = 'Finished files will appear here.';
     return;
   }
+
+  const sourceLabel = latest.sourceKind === 'youtube-liked-videos'
+    ? 'your YouTube likes'
+    : 'your pasted links';
+  elements.latestDownloadSummary.textContent =
+    `Latest job prepared ${formatNumber(latest.completedFileCount)} file(s) from ${sourceLabel} at ${formatTime(latest.savedAt)}.`;
 
   elements.fileLinks.className = 'file-links';
   elements.fileLinks.innerHTML = latest.files
     .map(
       (file) => `
-        <a class="file-pill" href="${file.url}">
+        <a class="file-pill" href="${file.url}" download>
           <strong>${escapeHtml(file.name)}</strong>
           <span>${formatBytes(file.sizeBytes)}</span>
         </a>
       `,
     )
     .join('');
-}
-
-function renderSummary() {
-  const latest = state.status?.latestExport;
-  if (!latest) {
-    elements.summaryBanner.className = 'summary-banner empty-state';
-    elements.summaryBanner.textContent = 'No results loaded yet.';
-    return;
-  }
-
-  const mismatch =
-    typeof latest.mismatchCount === 'number' && latest.mismatchCount > 0;
-  const sourceLabel = latest.sourceLabel || getSourceLabel(latest.sourcePlatform);
-  elements.summaryBanner.className = `summary-banner${mismatch ? ' warning' : ''}`;
-  elements.summaryBanner.innerHTML = mismatch
-    ? `
-      <strong>${formatNumber(latest.exportedCount)}</strong> ${escapeHtml(sourceLabel)} tracks were exported, while the
-      page reported <strong>${formatNumber(latest.reportedTrackCount)}</strong>.
-      The app keeps both numbers so you can see the mismatch instead of hiding it.
-    `
-    : `
-      Export completed with <strong>${formatNumber(latest.exportedCount)}</strong> tracks from
-      <strong>${escapeHtml(latest.title || sourceLabel)}</strong>.
-    `;
 }
 
 function renderLogs() {
@@ -379,521 +308,268 @@ function renderLogs() {
   elements.logs.scrollTop = elements.logs.scrollHeight;
 }
 
-function renderSelectionSummary() {
-  const tracks = getTracks();
-  const filtered = getFilteredTracks();
-  const selectedCount = state.selectedKeys.size;
-  const resultsSource = getCurrentResultsSource();
-  const resultsSourceLabel = resultsSource ? getSourceLabel(resultsSource) : getSourceLabel(getActiveSource());
-
-  if (!tracks.length) {
-    elements.selectionSummary.textContent =
-      `Export ${resultsSourceLabel} tracks first, then select the songs you want from the table below.`;
-  } else if (!downloadsSupported()) {
-    elements.selectionSummary.textContent =
-      `${resultsSourceLabel} exports are metadata-only here. Download controls stay disabled for this source.`;
-  } else if (!selectedCount) {
-    elements.selectionSummary.textContent =
-      `Showing ${formatNumber(filtered.length)} of ${formatNumber(tracks.length)} exported tracks. Download All uses every exported song.`;
-  } else {
-    elements.selectionSummary.textContent =
-      `${formatNumber(selectedCount)} track(s) selected. Download Selected uses the checked rows only.`;
-  }
-}
-
-function renderDirectLinkSummary() {
-  const urls = getDirectUrls();
-  if (!urls.length) {
-    elements.directLinkSummary.textContent =
-      'Paste one or more URLs to start a direct yt-dlp job.';
-    return;
-  }
-
-  elements.directLinkSummary.textContent =
-    `${formatNumber(urls.length)} URL(s) ready. Music Studio will save them into your selected folder${elements.directExtractAudio.checked ? ' and extract MP3 audio where possible' : ''}.`;
-}
-
-function syncSelectAllCheckbox() {
-  const visibleKeys = getFilteredTracks()
-    .map((track) => track.trackKey)
-    .filter(Boolean);
-  const selectedVisible = visibleKeys.filter((key) => state.selectedKeys.has(key));
-
-  elements.selectAllTracks.disabled = visibleKeys.length === 0;
-  elements.selectAllTracks.checked =
-    visibleKeys.length > 0 && selectedVisible.length === visibleKeys.length;
-  elements.selectAllTracks.indeterminate =
-    selectedVisible.length > 0 && selectedVisible.length < visibleKeys.length;
-}
-
-function renderTracks() {
-  const tracks = getTracks();
-  if (!tracks.length) {
-    elements.tracksTable.innerHTML = `
-      <tr>
-        <td colspan="6" class="empty-state">No tracks loaded yet.</td>
-      </tr>
-    `;
-    renderSelectionSummary();
-    syncSelectAllCheckbox();
-    return;
-  }
-
-  const filtered = getFilteredTracks();
-  if (!filtered.length) {
-    elements.tracksTable.innerHTML = `
-      <tr>
-        <td colspan="6" class="empty-state">No tracks matched that search.</td>
-      </tr>
-    `;
-    renderSelectionSummary();
-    syncSelectAllCheckbox();
-    return;
-  }
-
-  elements.tracksTable.innerHTML = filtered
-    .slice(0, 500)
-    .map(
-      (track) => `
-        <tr>
-          <td>
-            <input
-              class="track-select"
-              type="checkbox"
-              data-track-key="${escapeHtml(track.trackKey || '')}"
-              ${state.selectedKeys.has(track.trackKey) ? 'checked' : ''}
-            >
-          </td>
-          <td>${track.index}</td>
-          <td>
-            <strong class="track-title">
-              ${
-                track.url
-                  ? `<a class="track-link" href="${track.url}" target="_blank" rel="noreferrer">${escapeHtml(track.title || '')}</a>`
-                  : escapeHtml(track.title || '')
-              }
-            </strong>
-            <span class="track-meta">${escapeHtml(track.trackType || track.videoType || track.sourceLabel || '')}</span>
-          </td>
-          <td>${escapeHtml(track.artists || '')}</td>
-          <td>${escapeHtml(track.meta || track.album || '')}</td>
-          <td>${escapeHtml(track.duration || '')}</td>
-        </tr>
-      `,
-    )
-    .join('');
-
-  renderSelectionSummary();
-  syncSelectAllCheckbox();
-}
-
 function syncActionButtons() {
-  const exportRunning = Boolean(state.status?.export?.running);
-  const downloadRunning = Boolean(state.status?.download?.running);
+  const auth = getAuth();
+  const jobRunning = Boolean(getDownloadJob().running);
   const ytDlpAvailable = Boolean(state.status?.tools?.ytDlp?.available);
-  const tracks = getTracks();
-  const hasSelection = state.selectedKeys.size > 0;
-  const canDownload = downloadsSupported();
-  const directUrls = getDirectUrls();
+  const hasDirectUrls = getDirectUrls().length > 0;
+  const latest = getLatestDownload();
 
-  elements.chooseFolderBtn.disabled = exportRunning || downloadRunning;
-  elements.launchBrowserBtn.disabled = exportRunning;
-  elements.runExportBtn.disabled = exportRunning;
-  elements.resetSessionBtn.disabled = exportRunning;
-  elements.downloadSelectedBtn.disabled =
-    exportRunning || downloadRunning || !ytDlpAvailable || !hasSelection || !canDownload;
-  elements.downloadAllBtn.disabled =
-    exportRunning || downloadRunning || !ytDlpAvailable || tracks.length === 0 || !canDownload;
-  elements.clearSelectionBtn.disabled = !hasSelection;
-  elements.extractAudio.disabled = exportRunning || downloadRunning || !canDownload;
-  if (!canDownload) {
-    elements.extractAudio.checked = false;
-  }
-  elements.directDownloadBtn.disabled =
-    exportRunning || downloadRunning || !ytDlpAvailable || directUrls.length === 0;
-  if (elements.launchBrowserDirectBtn) {
-    elements.launchBrowserDirectBtn.disabled = exportRunning;
-  }
-  elements.directExtractAudio.disabled = exportRunning || downloadRunning || !ytDlpAvailable;
-  elements.directUrls.disabled = exportRunning || downloadRunning;
+  elements.authSignInBtn.disabled = jobRunning || !auth.configured;
+  elements.authSignOutBtn.disabled = jobRunning;
+  elements.chooseFolderBtn.disabled = state.sync.running || !supportsLocalFolder();
+  elements.saveLatestBtn.disabled = state.sync.running || !latest?.files?.length;
+  elements.directUrls.disabled = jobRunning;
+  elements.directExtractAudio.disabled = jobRunning || !ytDlpAvailable;
+  elements.likedExtractAudio.disabled = jobRunning || !ytDlpAvailable || !auth.authenticated;
+  elements.directDownloadBtn.disabled = jobRunning || !ytDlpAvailable || !hasDirectUrls;
+  elements.downloadLikedBtn.disabled = jobRunning || !ytDlpAvailable || !auth.authenticated;
 }
 
-async function loadResults() {
-  try {
-    state.results = await fetchJson('/api/results');
-    trimSelection();
-  } catch {
-    state.results = null;
-    state.selectedKeys.clear();
-  }
-  renderTracks();
-  renderDirectLinkSummary();
+function renderAll() {
+  renderHero();
+  renderAuth();
+  renderFolder();
+  renderDirectSummary();
+  renderYouTubeSummary();
+  renderProgress();
+  renderSyncPanel();
+  renderFiles();
+  renderLogs();
   syncActionButtons();
+}
+
+async function chooseLocalFolder() {
+  if (!supportsLocalFolder()) {
+    throw new Error('This browser does not support direct folder saving. Use Chrome or Edge, or download files manually from the list below.');
+  }
+
+  const handle = await window.showDirectoryPicker({ mode: 'readwrite' });
+  state.folderHandle = handle;
+  state.folderName = handle.name || 'Selected folder';
+  setSyncState(
+    'Local folder ready.',
+    `Finished files will be saved into "${state.folderName}" on this device.`,
+    { failedRunId: null },
+  );
+  renderAll();
+}
+
+async function ensureLocalFolderIfPossible() {
+  if (!supportsLocalFolder() || state.folderHandle) {
+    return;
+  }
+  await chooseLocalFolder();
+}
+
+async function syncLatestDownload(manifest, { manual = false } = {}) {
+  if (!manifest?.files?.length) {
+    throw new Error('There are no finished files to save yet.');
+  }
+
+  if (!state.folderHandle) {
+    if (!manual) {
+      return;
+    }
+    await chooseLocalFolder();
+  }
+
+  if (!state.folderHandle) {
+    return;
+  }
+
+  state.sync.running = true;
+  state.sync.failedRunId = null;
+  renderAll();
+
+  try {
+    for (let index = 0; index < manifest.files.length; index += 1) {
+      const file = manifest.files[index];
+      setSyncState(
+        `Saving ${index + 1} of ${manifest.files.length} locally...`,
+        `Writing ${file.name} into "${state.folderName}".`,
+      );
+      const response = await fetch(file.url);
+      if (!response.ok) {
+        throw new Error(`Could not download ${file.name} from the server.`);
+      }
+      const fileHandle = await state.folderHandle.getFileHandle(file.name, { create: true });
+      const writable = await fileHandle.createWritable();
+      if (response.body && writable) {
+        await response.body.pipeTo(writable);
+      } else {
+        const blob = await response.blob();
+        await writable.write(blob);
+        await writable.close();
+      }
+    }
+
+    state.sync.completedRunId = manifest.runId;
+    state.sync.failedRunId = null;
+    setSyncState(
+      `Saved ${manifest.files.length} file(s) locally.`,
+      `Everything from the latest job is now in "${state.folderName}".`,
+    );
+  } catch (error) {
+    state.sync.failedRunId = manifest.runId;
+    setSyncState(
+      'Local save needs attention.',
+      error instanceof Error ? error.message : String(error),
+    );
+    if (manual) {
+      throw error;
+    }
+  } finally {
+    state.sync.running = false;
+    renderAll();
+  }
+}
+
+async function maybeAutoSaveLatest() {
+  const latest = getLatestDownload();
+  if (!latest?.files?.length || !state.folderHandle || state.sync.running) {
+    return;
+  }
+  if (latest.runId === state.sync.completedRunId || latest.runId === state.sync.failedRunId) {
+    return;
+  }
+  await syncLatestDownload(latest);
 }
 
 async function refreshStatus() {
   try {
-    const previousExportedAt = state.status?.latestExport?.exportedAt || null;
     state.status = await fetchJson('/api/status');
-    renderStatus();
-    renderLiveProgress();
-    renderFiles();
-    renderSummary();
-    renderLogs();
-
-    const nextExportedAt = state.status?.latestExport?.exportedAt || null;
-    if (nextExportedAt && nextExportedAt !== previousExportedAt) {
-      await loadResults();
-    }
-
-    if (!state.results && nextExportedAt) {
-      await loadResults();
-    }
+    renderAll();
+    await maybeAutoSaveLatest();
   } catch (error) {
-    elements.debugStatus.textContent = 'Unavailable';
-    elements.debugDetail.textContent = error instanceof Error ? error.message : String(error);
+    setSyncState(
+      'Connection problem.',
+      error instanceof Error ? error.message : String(error),
+    );
   }
 }
 
-function resolveLabel(label) {
-  return typeof label === 'function' ? label() : label;
-}
-
-async function invokeAction(url, button, idleLabel, busyLabel, body) {
+async function invokeAction(url, body, button, idleLabel, busyLabel) {
+  const previousLabel = button.textContent;
   button.disabled = true;
-  button.textContent = resolveLabel(busyLabel);
-
+  button.textContent = busyLabel;
   try {
     await fetchJson(url, {
       method: 'POST',
       body: body ? JSON.stringify(body) : undefined,
     });
     await refreshStatus();
-    if (url === '/api/select-output-folder') {
-      await loadResults();
-    }
   } catch (error) {
     alert(error instanceof Error ? error.message : String(error));
   } finally {
     button.disabled = false;
-    button.textContent = resolveLabel(idleLabel);
-    syncActionButtons();
+    button.textContent = idleLabel || previousLabel;
+    renderAll();
   }
 }
 
-async function setSource(source) {
-  elements.sourceYtMusicBtn.disabled = true;
-  elements.sourceSpotifyBtn.disabled = true;
+elements.authSignInBtn?.addEventListener('click', async () => {
   try {
-    await fetchJson('/api/source', {
-      method: 'POST',
-      body: JSON.stringify({ source }),
-    });
-    await refreshStatus();
+    const data = await fetchJson('/api/auth/start');
+    const width = 540;
+    const height = 680;
+    const left = Math.max(40, Math.round((window.innerWidth - width) / 2));
+    const top = Math.max(40, Math.round((window.innerHeight - height) / 2));
+    const popup = window.open(
+      data.auth_url,
+      'MusicStudioGoogleSignIn',
+      `width=${width},height=${height},left=${left},top=${top}`,
+    );
+    if (!popup) {
+      throw new Error('The Google sign-in window was blocked. Please allow pop-ups for this site and try again.');
+    }
   } catch (error) {
     alert(error instanceof Error ? error.message : String(error));
-  } finally {
-    elements.sourceYtMusicBtn.disabled = false;
-    elements.sourceSpotifyBtn.disabled = false;
-  }
-}
-
-elements.sourceYtMusicBtn.addEventListener('click', () => {
-  setSource('ytmusic');
-});
-
-elements.sourceSpotifyBtn.addEventListener('click', () => {
-  setSource('spotify');
-});
-
-elements.chooseFolderBtn.addEventListener('click', () => {
-  invokeAction(
-    '/api/select-output-folder',
-    elements.chooseFolderBtn,
-    'Choose Save Folder',
-    'Choosing...',
-  );
-});
-
-elements.launchBrowserBtn.addEventListener('click', () => {
-  if (elements.remoteBrowserPanel) {
-    elements.remoteBrowserPanel.style.display = 'block';
-  }
-  invokeAction(
-    '/api/launch-browser',
-    elements.launchBrowserBtn,
-    getLaunchLabel,
-    () => `Opening ${getSourceLabel(getActiveSource())}...`,
-  );
-});
-
-elements.refreshVncBtn?.addEventListener('click', () => {
-  if (elements.vncIframe) {
-    elements.vncIframe.src = elements.vncIframe.src;
   }
 });
 
-elements.hideMonitorBtn?.addEventListener('click', () => {
-  if (elements.remoteBrowserPanel) {
-    elements.remoteBrowserPanel.style.display = 'none';
+elements.authSignOutBtn?.addEventListener('click', async () => {
+  await invokeAction('/api/auth/logout', null, elements.authSignOutBtn, 'Sign Out', 'Signing Out...');
+});
+
+window.addEventListener('message', async (event) => {
+  if (event.origin !== window.location.origin) {
+    return;
+  }
+  if (event.data?.type !== 'music-studio-auth') {
+    return;
+  }
+  await refreshStatus();
+});
+
+elements.chooseFolderBtn?.addEventListener('click', async () => {
+  try {
+    await chooseLocalFolder();
+  } catch (error) {
+    alert(error instanceof Error ? error.message : String(error));
   }
 });
 
-elements.runExportBtn.addEventListener('click', () => {
-  invokeAction(
-    '/api/export',
-    elements.runExportBtn,
-    getExportLabel,
-    () => `Exporting ${getSourceLabel(getActiveSource())}...`,
-  );
+elements.saveLatestBtn?.addEventListener('click', async () => {
+  try {
+    await syncLatestDownload(getLatestDownload(), { manual: true });
+  } catch (error) {
+    alert(error instanceof Error ? error.message : String(error));
+  }
 });
 
-elements.resetSessionBtn.addEventListener('click', () => {
-  invokeAction(
-    '/api/reset-session',
-    elements.resetSessionBtn,
-    'Reset Guided Session',
-    'Resetting...',
-  );
+elements.directUrls?.addEventListener('input', () => {
+  renderDirectSummary();
+  syncActionButtons();
 });
 
-elements.downloadSelectedBtn.addEventListener('click', () => {
-  invokeAction(
-    '/api/download',
-    elements.downloadSelectedBtn,
-    'Download Selected',
-    'Starting...',
-    {
-      trackKeys: [...state.selectedKeys],
-      extractAudio: elements.extractAudio.checked,
-    },
-  );
+elements.directExtractAudio?.addEventListener('change', () => {
+  renderDirectSummary();
 });
 
-elements.downloadAllBtn.addEventListener('click', () => {
-  invokeAction(
-    '/api/download',
-    elements.downloadAllBtn,
-    'Download All Exported',
-    'Starting...',
-    {
-      extractAudio: elements.extractAudio.checked,
-    },
-  );
+elements.likedExtractAudio?.addEventListener('change', () => {
+  renderYouTubeSummary();
 });
 
-elements.directDownloadBtn.addEventListener('click', () => {
-  invokeAction(
+elements.directDownloadBtn?.addEventListener('click', async () => {
+  try {
+    await ensureLocalFolderIfPossible();
+  } catch (error) {
+    alert(error instanceof Error ? error.message : String(error));
+    return;
+  }
+
+  await invokeAction(
     '/api/direct-download',
-    elements.directDownloadBtn,
-    'Download Pasted Links',
-    'Starting...',
     {
       urls: getDirectUrls(),
       extractAudio: elements.directExtractAudio.checked,
     },
+    elements.directDownloadBtn,
+    'Download Pasted Links',
+    'Starting...',
   );
 });
 
-elements.clearSelectionBtn.addEventListener('click', () => {
-  state.selectedKeys.clear();
-  renderTracks();
-  syncActionButtons();
-});
-
-if (elements.launchBrowserDirectBtn) {
-  elements.launchBrowserDirectBtn.addEventListener('click', () => {
-    if (elements.remoteBrowserPanel) {
-      elements.remoteBrowserPanel.style.display = 'block';
-    }
-    invokeAction(
-      '/api/launch-browser',
-      elements.launchBrowserDirectBtn,
-      'Open Guided Chrome (Solve Bot Blocks)',
-      () => `Opening Chrome...`,
-    );
-  });
-}
-
-// OAuth Event Listeners
-if (elements.authSignInBtn) {
-  elements.authSignInBtn.addEventListener('click', async () => {
-    try {
-      const response = await fetch('/api/auth/start');
-      const data = await response.json();
-      if (data.auth_url) {
-        // Open OAuth URL in new window/tab
-        const width = 500;
-        const height = 600;
-        const left = (window.innerWidth - width) / 2;
-        const top = (window.innerHeight - height) / 2;
-        const oauthWindow = window.open(
-          data.auth_url,
-          'GoogleOAuth',
-          `width=${width},height=${height},left=${left},top=${top}`
-        );
-        // Poll for auth completion
-        const checkInterval = setInterval(async () => {
-          if (!oauthWindow || oauthWindow.closed) {
-            clearInterval(checkInterval);
-            await refreshAuthStatus();
-          }
-        }, 500);
-      } else if (data.message) {
-        alert('OAuth not configured: ' + data.message);
-      }
-    } catch (error) {
-      console.error('OAuth error:', error);
-    }
-  });
-}
-
-if (elements.authSignOutBtn) {
-  elements.authSignOutBtn.addEventListener('click', async () => {
-    try {
-      await fetch('/api/auth/logout', { method: 'POST' });
-      await refreshAuthStatus();
-    } catch (error) {
-      console.error('Sign out error:', error);
-    }
-  });
-}
-
-// Check auth status on page load
-async function refreshAuthStatus() {
+elements.downloadLikedBtn?.addEventListener('click', async () => {
   try {
-    const response = await fetch('/api/auth/status');
-    const data = await response.json();
-    updateAuthUI(data.authenticated);
+    await ensureLocalFolderIfPossible();
   } catch (error) {
-    console.error('Auth status check error:', error);
-  }
-}
-
-function updateAuthUI(authenticated) {
-  if (!elements.authStatusText || !elements.authSignInBtn || !elements.authSignOutBtn) {
-    return;
-  }
-  
-  if (authenticated) {
-    elements.authStatusText.textContent = '✓ Signed in with Google - Downloads will use your YouTube account authorization.';
-    elements.authSignInBtn.style.display = 'none';
-    elements.authSignOutBtn.style.display = 'inline-block';
-  } else {
-    elements.authStatusText.textContent = 'Sign in with Google to enable authorized YouTube downloads (recommended for better reliability).';
-    elements.authSignInBtn.style.display = 'inline-block';
-    elements.authSignOutBtn.style.display = 'none';
-  }
-}
-
-// --- LANDING SCREEN ROUTING LOGIC ---
-function switchWorkspaceMod(mode) {
-  if (!elements.landingScreen || !elements.workspaceScreen) return;
-  
-  elements.landingScreen.style.display = 'none';
-  elements.workspaceScreen.style.display = 'block';
-  window.scrollTo({ top: 0 });
-  
-  const statusCard = document.querySelector('.status-card');
-  const filesCard = document.querySelector('.files-card');
-  const summaryCard = document.querySelector('.summary-card');
-  const mediaCard = document.querySelector('.media-card');
-  const tracksCard = document.querySelector('.tracks-card');
-  
-  if (mode === 'direct') {
-    if (elements.heroExportPanel) elements.heroExportPanel.style.display = 'none';
-    if (elements.exportStepsPanel) elements.exportStepsPanel.style.display = 'none';
-    if (elements.directLinkPanel) elements.directLinkPanel.style.display = 'block';
-    
-    // Hide export specific UI
-    if (statusCard) statusCard.style.display = 'none';
-    if (filesCard) filesCard.style.display = 'none';
-    if (summaryCard) summaryCard.style.display = 'none';
-    if (mediaCard) mediaCard.style.display = 'none';
-    if (tracksCard) tracksCard.style.display = 'none';
-  } else {
-    // mode === 'export'
-    if (elements.heroExportPanel) elements.heroExportPanel.style.display = 'grid';
-    if (elements.exportStepsPanel) elements.exportStepsPanel.style.display = 'block';
-    // Hide direct link panel
-    if (elements.directLinkPanel) elements.directLinkPanel.style.display = 'none';
-    
-    // Show export specific UI
-    if (statusCard) statusCard.style.display = 'block';
-    if (filesCard) filesCard.style.display = 'block';
-    if (summaryCard) summaryCard.style.display = 'block';
-    if (mediaCard) mediaCard.style.display = 'block';
-    if (tracksCard) tracksCard.style.display = 'block';
-  }
-}
-
-elements.navDirectDownload?.addEventListener('click', () => switchWorkspaceMod('direct'));
-elements.navExportMusic?.addEventListener('click', () => switchWorkspaceMod('export'));
-
-elements.navBackBtn?.addEventListener('click', () => {
-  if (!elements.landingScreen || !elements.workspaceScreen) return;
-  elements.workspaceScreen.style.display = 'none';
-  elements.landingScreen.style.display = 'flex';
-});
-
-elements.directUrls.addEventListener('input', () => {
-  renderDirectLinkSummary();
-  syncActionButtons();
-});
-
-elements.directExtractAudio.addEventListener('change', () => {
-  renderDirectLinkSummary();
-});
-
-elements.trackSearch.addEventListener('input', (event) => {
-  state.search = event.currentTarget.value;
-  renderTracks();
-  syncActionButtons();
-});
-
-elements.tracksTable.addEventListener('change', (event) => {
-  const input = event.target;
-  if (!(input instanceof HTMLInputElement) || !input.classList.contains('track-select')) {
+    alert(error instanceof Error ? error.message : String(error));
     return;
   }
 
-  const key = input.dataset.trackKey;
-  if (!key) {
-    return;
-  }
-
-  if (input.checked) {
-    state.selectedKeys.add(key);
-  } else {
-    state.selectedKeys.delete(key);
-  }
-  renderSelectionSummary();
-  syncSelectAllCheckbox();
-  syncActionButtons();
-});
-
-elements.selectAllTracks.addEventListener('change', (event) => {
-  const input = event.currentTarget;
-  const visibleKeys = getFilteredTracks()
-    .map((track) => track.trackKey)
-    .filter(Boolean);
-
-  if (input.checked) {
-    for (const key of visibleKeys) {
-      state.selectedKeys.add(key);
-    }
-  } else {
-    for (const key of visibleKeys) {
-      state.selectedKeys.delete(key);
-    }
-  }
-
-  renderTracks();
-  syncActionButtons();
+  await invokeAction(
+    '/api/youtube/download-liked',
+    {
+      extractAudio: elements.likedExtractAudio.checked,
+    },
+    elements.downloadLikedBtn,
+    'Download My Liked Videos',
+    'Starting...',
+  );
 });
 
 await refreshStatus();
-await loadResults();
-await refreshAuthStatus();
-renderDirectLinkSummary();
+renderAll();
 setInterval(refreshStatus, 2500);

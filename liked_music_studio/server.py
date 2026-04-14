@@ -3,110 +3,41 @@ from __future__ import annotations
 import json
 import mimetypes
 import os
+import secrets
 import shutil
-import subprocess
-import sys
 import threading
 import urllib.parse
 import webbrowser
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from functools import partial
 from http import HTTPStatus
+from http.cookies import SimpleCookie
 from http.server import BaseHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from typing import Any
 from urllib.parse import unquote, urlparse
 
 from . import APP_NAME, APP_VERSION
-from .devtools import (
-    ChromeDebugError,
-    SOURCE_LABELS,
-    SOURCE_URLS,
-    get_debug_status,
-    scrape_source,
-)
-from .downloader import download_tracks, download_urls, get_tool_status
-from .exports import load_latest_results, load_manifest, write_exports
-from . import oauth
+from .downloader import download_urls, get_tool_status
+from . import oauth, youtube
 
 
 BASE_DIR = Path(__file__).resolve().parents[1]
 PUBLIC_DIR = BASE_DIR / "public"
-DEFAULT_OUTPUT_DIR = BASE_DIR / "output"
 RUNTIME_DIR = BASE_DIR / "runtime"
-CHROME_PROFILE_DIR = RUNTIME_DIR / "chrome-profile"
-APP_HOST = os.environ.get("APP_HOST", "127.0.0.1")
-DEBUG_HOST = os.environ.get("YTMUSIC_DEBUG_HOST", "127.0.0.1")
+SESSIONS_DIR = RUNTIME_DIR / "sessions"
+APP_HOST = os.environ.get("APP_HOST", "0.0.0.0")
 DEFAULT_PORT = int(os.environ.get("PORT", "4173"))
-DEBUG_PORT = int(os.environ.get("YTMUSIC_DEBUG_PORT", "9224"))
+SESSION_COOKIE_NAME = "music_studio_session"
 
 
 def _utc_now() -> str:
     return datetime.now(timezone.utc).replace(microsecond=0).isoformat().replace("+00:00", "Z")
 
 
-def _build_remote_allow_origins(host: str, port: int) -> str:
-    hosts = {host.strip(), "127.0.0.1", "localhost"}
-    origins: list[str] = []
-    for item in sorted(candidate for candidate in hosts if candidate):
-        origins.append(f"http://{item}:{port}")
-        origins.append(f"ws://{item}:{port}")
-    return ",".join(origins)
-
-
-def _run_folder_picker(initial_dir: Path) -> str:
-    override = os.environ.get("MUSIC_STUDIO_PICKER_PATH")
-    if override:
-        selected = Path(override).expanduser()
-        if not selected.exists() or not selected.is_dir():
-            raise RuntimeError(
-                f"MUSIC_STUDIO_PICKER_PATH must point to an existing folder, got: {selected}"
-            )
-        return str(selected)
-
-    picker_script = """
-import sys
-
-try:
-    import tkinter as tk
-    from tkinter import filedialog
-except Exception as exc:
-    print(f"Folder picker is unavailable: {exc}", file=sys.stderr)
-    raise SystemExit(1)
-
-initial_dir = sys.argv[1] if len(sys.argv) > 1 else ""
-root = tk.Tk()
-root.withdraw()
-try:
-    root.attributes("-topmost", True)
-except Exception:
-    pass
-try:
-    selected = filedialog.askdirectory(
-        title="Choose a save folder for exports and downloads",
-        initialdir=initial_dir,
-        mustexist=True,
-    )
-finally:
-    root.destroy()
-
-print(selected or "")
-"""
-    completed = subprocess.run(
-        [sys.executable, "-c", picker_script, str(initial_dir)],
-        stdout=subprocess.PIPE,
-        stderr=subprocess.PIPE,
-        stdin=subprocess.DEVNULL,
-        text=True,
-        encoding="utf-8",
-        errors="replace",
-        check=False,
-    )
-    if completed.returncode != 0:
-        message = (completed.stderr or completed.stdout).strip()
-        raise RuntimeError(message or "Folder picker failed to start.")
-    return completed.stdout.strip()
+def _quote_path_segment(value: str) -> str:
+    return urllib.parse.quote(value.replace("\\", "/"), safe="/-._~")
 
 
 @dataclass
@@ -121,538 +52,462 @@ class JobState:
     progress_percent: float | None = None
     progress_label: str | None = None
     progress_detail: str | None = None
+    active_run_id: str | None = None
+
+
+@dataclass
+class SessionState:
+    session_id: str
+    root_dir: Path
+    logs: list[dict[str, str]] = field(default_factory=list)
+    download: JobState = field(default_factory=JobState)
 
 
 class StudioState:
-    def __init__(self, app_port: int) -> None:
+    def __init__(self) -> None:
         self.lock = threading.Lock()
-        self.logs: list[dict[str, str]] = []
-        self.export = JobState()
-        self.download = JobState()
-        self.output_dir = DEFAULT_OUTPUT_DIR
-        self.active_source = "ytmusic"
-        self.app_port = app_port
-        self.app_url = f"http://{APP_HOST}:{app_port}"
-        self.output_dir.mkdir(parents=True, exist_ok=True)
+        self.sessions: dict[str, SessionState] = {}
         RUNTIME_DIR.mkdir(parents=True, exist_ok=True)
+        SESSIONS_DIR.mkdir(parents=True, exist_ok=True)
 
-    def _update_job_progress(
-        self,
-        job_name: str,
-        *,
-        label: str | None = None,
-        detail: str | None = None,
-        percent: float | None = None,
-    ) -> None:
+    def get_session(self, session_id: str) -> SessionState:
         with self.lock:
-            job = self.export if job_name == "export" else self.download
-            if label is not None:
-                job.progress_label = label
-            if detail is not None:
-                job.progress_detail = detail
-            if percent is None:
-                job.progress_percent = None
-            else:
-                job.progress_percent = max(0.0, min(100.0, round(float(percent), 1)))
+            session = self.sessions.get(session_id)
+            if session:
+                return session
+            root_dir = SESSIONS_DIR / session_id
+            root_dir.mkdir(parents=True, exist_ok=True)
+            session = SessionState(session_id=session_id, root_dir=root_dir)
+            self.sessions[session_id] = session
+            return session
 
-    def _consume_progress_update(self, job_name: str, payload: dict[str, Any]) -> None:
-        self._update_job_progress(
-            job_name,
-            label=str(payload.get("label") or "") or None,
-            detail=str(payload.get("detail") or "") or None,
-            percent=payload.get("percent") if isinstance(payload.get("percent"), (int, float)) else None,
-        )
-
-    def _build_live_progress(
-        self,
-        export_state: JobState,
-        download_state: JobState,
-    ) -> dict[str, Any]:
-        if download_state.running:
-            return {
-                "kind": "download",
-                "running": True,
-                "label": download_state.progress_label or "Preparing downloads",
-                "detail": download_state.progress_detail or "Waiting for yt-dlp to begin.",
-                "percent": download_state.progress_percent,
-            }
-        if export_state.running:
-            return {
-                "kind": "export",
-                "running": True,
-                "label": export_state.progress_label or "Preparing export",
-                "detail": export_state.progress_detail or "Opening the selected source.",
-                "percent": export_state.progress_percent,
-            }
-        latest_kind = None
-        latest_job = None
-        for kind, job in (("download", download_state), ("export", export_state)):
-            marker = job.last_finished_at or job.last_started_at or ""
-            if not marker:
-                continue
-            if latest_job is None or marker > (latest_job.last_finished_at or latest_job.last_started_at or ""):
-                latest_kind = kind
-                latest_job = job
-        if latest_job and (latest_job.progress_label or latest_job.progress_detail):
-            return {
-                "kind": latest_kind,
-                "running": False,
-                "label": latest_job.progress_label or "Last job complete",
-                "detail": latest_job.progress_detail or "The last job finished.",
-                "percent": latest_job.progress_percent,
-            }
-        return {
-            "kind": None,
-            "running": False,
-            "label": "Ready for the next run",
-            "detail": "Start an export or a direct-link download to see live progress here.",
-            "percent": None,
-        }
-
-    def add_log(self, message: str, kind: str = "info") -> None:
+    def add_log(self, session_id: str, message: str, kind: str = "info") -> None:
+        session = self.get_session(session_id)
         with self.lock:
-            self.logs.append(
+            session.logs.append(
                 {
-                    "id": f"{threading.get_ident()}-{len(self.logs) + 1}",
+                    "id": f"{session_id}-{len(session.logs) + 1}",
                     "kind": kind,
                     "message": message,
                     "timestamp": _utc_now(),
                 }
             )
-            if len(self.logs) > 220:
-                self.logs = self.logs[-220:]
+            if len(session.logs) > 220:
+                session.logs = session.logs[-220:]
 
-    def get_chrome_path(self) -> str | None:
-        candidates = [
-            os.environ.get("CHROME_PATH"),
-            r"C:\Program Files\Google\Chrome\Application\chrome.exe",
-            r"C:\Program Files (x86)\Google\Chrome\Application\chrome.exe",
-            str(
-                Path(os.environ.get("LOCALAPPDATA", ""))
-                / "Google"
-                / "Chrome"
-                / "Application"
-                / "chrome.exe"
-            ),
-            "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome",
-            str(
-                Path.home()
-                / "Applications"
-                / "Google Chrome.app"
-                / "Contents"
-                / "MacOS"
-                / "Google Chrome"
-            ),
-            shutil.which("google-chrome"),
-            shutil.which("google-chrome-stable"),
-            shutil.which("chromium"),
-            shutil.which("chromium-browser"),
-        ]
-        for candidate in candidates:
-            if candidate and Path(candidate).exists():
-                return candidate
-        return None
+    def _load_latest_download_manifest(self, session: SessionState) -> dict[str, Any] | None:
+        manifest_path = session.root_dir / "latest-download.json"
+        if not manifest_path.exists():
+            return None
+        try:
+            return json.loads(manifest_path.read_text(encoding="utf-8"))
+        except Exception:
+            return None
 
-    def build_status_payload(self) -> dict[str, Any]:
+    def _build_live_progress(self, download_state: JobState) -> dict[str, Any]:
+        if download_state.running:
+            return {
+                "kind": "download",
+                "running": True,
+                "label": download_state.progress_label or "Preparing download",
+                "detail": download_state.progress_detail or "Waiting for yt-dlp to begin.",
+                "percent": download_state.progress_percent,
+            }
+        if download_state.progress_label or download_state.progress_detail:
+            return {
+                "kind": "download",
+                "running": False,
+                "label": download_state.progress_label or "Last job complete",
+                "detail": download_state.progress_detail or "The last job finished.",
+                "percent": download_state.progress_percent,
+            }
+        return {
+            "kind": None,
+            "running": False,
+            "label": "Ready",
+            "detail": "Paste links or connect YouTube to start a download.",
+            "percent": None,
+        }
+
+    def build_status_payload(self, session_id: str) -> dict[str, Any]:
+        session = self.get_session(session_id)
         with self.lock:
-            export_state = JobState(**self.export.__dict__)
-            download_state = JobState(**self.download.__dict__)
-            logs = list(self.logs)
-            active_source = self.active_source
+            download_state = JobState(**session.download.__dict__)
+            logs = list(session.logs)
 
-        chrome_path = self.get_chrome_path()
+        latest_download = self._load_latest_download_manifest(session)
         return {
             "app": {
                 "name": APP_NAME,
                 "version": APP_VERSION,
-                "port": self.app_port,
-                "url": self.app_url,
             },
-            "sources": {
-                "active": active_source,
-                "labels": SOURCE_LABELS,
-            },
-            "privacy": {
-                "usesApiKeys": False,
-                "browserSessionOnly": True,
-            },
-            "chrome": {
-                "found": bool(chrome_path),
-                "path": chrome_path,
-                "profileDir": str(CHROME_PROFILE_DIR),
-            },
-            "debug": get_debug_status(DEBUG_HOST, DEBUG_PORT),
-            "output": {
-                "directory": str(self.output_dir),
-                "downloadsDirectory": str(self.output_dir / "downloads"),
+            "auth": {
+                "configured": oauth.is_configured(),
+                "authenticated": oauth.is_authenticated(session.root_dir),
             },
             "tools": get_tool_status(),
-            "export": export_state.__dict__,
             "download": download_state.__dict__,
-            "progress": self._build_live_progress(export_state, download_state),
-            "latestExport": self.get_latest_export(),
+            "progress": self._build_live_progress(download_state),
+            "latestDownload": latest_download,
             "logs": logs,
         }
 
-    def get_latest_export(self) -> dict[str, Any] | None:
-        manifest = load_manifest(self.output_dir)
-        if not manifest:
-            return None
-        source_platform = str(manifest.get("sourcePlatform") or "").strip() or "ytmusic"
-        source_label = str(manifest.get("sourceLabel") or "").strip() or SOURCE_LABELS[source_platform]
-        files = []
-        for file_info in manifest.get("files", []):
-            if not isinstance(file_info, dict):
-                continue
-            name = str(file_info.get("name") or "")
-            if not name:
-                continue
-            files.append(
-                {
-                    "name": name,
-                    "sizeBytes": file_info.get("sizeBytes"),
-                    "url": f"/downloads/{name}",
-                }
-            )
-        return {
-            "title": manifest.get("title"),
-            "sourcePlatform": source_platform,
-            "sourceLabel": source_label,
-            "downloadSupported": bool(
-                manifest.get("downloadSupported")
-                if "downloadSupported" in manifest
-                else source_platform == "ytmusic"
-            ),
-            "exportedAt": manifest.get("exportedAt"),
-            "reportedTrackCount": manifest.get("reportedTrackCount"),
-            "exportedCount": manifest.get("exportedCount"),
-            "mismatchCount": manifest.get("mismatchCount"),
-            "jsonFileName": manifest.get("jsonFileName"),
-            "files": files,
-        }
-
-    def get_results(self) -> dict[str, Any] | None:
-        return load_latest_results(self.output_dir)
-
-    def set_source(self, source: str) -> None:
-        if source not in SOURCE_LABELS:
-            raise RuntimeError("Unsupported export source.")
+    def _update_download_progress(
+        self,
+        session_id: str,
+        *,
+        label: str | None = None,
+        detail: str | None = None,
+        percent: float | None = None,
+    ) -> None:
+        session = self.get_session(session_id)
         with self.lock:
-            self.active_source = source
-        self.add_log(f"Switched source to {SOURCE_LABELS[source]}.", "info")
+            if label is not None:
+                session.download.progress_label = label
+            if detail is not None:
+                session.download.progress_detail = detail
+            if percent is None:
+                session.download.progress_percent = None
+            else:
+                session.download.progress_percent = max(0.0, min(100.0, round(float(percent), 1)))
 
-    def launch_guided_chrome(self) -> str:
-        chrome_path = self.get_chrome_path()
-        if not chrome_path:
-            raise RuntimeError("Chrome was not found. Install Chrome or set CHROME_PATH.")
-
+    def _set_download_job_started(
+        self,
+        session_id: str,
+        *,
+        mode: str,
+        requested_count: int | None,
+        progress_label: str,
+        progress_detail: str,
+    ) -> str:
+        session = self.get_session(session_id)
+        run_id = datetime.now(timezone.utc).strftime("%Y%m%d-%H%M%S")
         with self.lock:
-            source = self.active_source
-        source_label = SOURCE_LABELS[source]
-        source_url = SOURCE_URLS[source]
+            if session.download.running:
+                raise RuntimeError("A download job is already running for this browser session.")
+            session.download.running = True
+            session.download.last_started_at = _utc_now()
+            session.download.last_finished_at = None
+            session.download.last_error = None
+            session.download.last_exit_code = None
+            session.download.requested_count = requested_count
+            session.download.mode = mode
+            session.download.progress_percent = 0.0
+            session.download.progress_label = progress_label
+            session.download.progress_detail = progress_detail
+            session.download.active_run_id = run_id
+        return run_id
 
-        CHROME_PROFILE_DIR.mkdir(parents=True, exist_ok=True)
-        args = [
-            chrome_path,
-            f"--remote-debugging-port={DEBUG_PORT}",
-            "--remote-debugging-address=127.0.0.1",
-            f"--remote-allow-origins={_build_remote_allow_origins(DEBUG_HOST, DEBUG_PORT)}",
-            f"--user-data-dir={CHROME_PROFILE_DIR}",
-            "--new-window",
-            "--disable-first-run-ui",
-            "--no-default-browser-check",
-            "--no-sandbox",
-            source_url,
-        ]
-        popen_kwargs: dict[str, Any] = {
-            "stdout": subprocess.DEVNULL,
-            "stderr": subprocess.DEVNULL,
-            "stdin": subprocess.DEVNULL,
-        }
-        if os.name == "nt":
-            creationflags = (
-                getattr(subprocess, "DETACHED_PROCESS", 0)
-                | getattr(subprocess, "CREATE_NEW_PROCESS_GROUP", 0)
-            )
-            popen_kwargs["creationflags"] = creationflags
-        else:
-            popen_kwargs["start_new_session"] = True
-        subprocess.Popen(args, **popen_kwargs)
-        self.add_log(f"Opened Guided Chrome on {source_label}.", "success")
-        return chrome_path
-
-    def reset_guided_session(self) -> None:
-        if self.export.running:
-            raise RuntimeError("Wait for the current export to finish before resetting the session.")
-        debug = get_debug_status(DEBUG_HOST, DEBUG_PORT)
-        if debug.get("connected"):
-            raise RuntimeError(
-                "Close the Guided Chrome window first, then reset the session to switch accounts."
-            )
-        shutil.rmtree(CHROME_PROFILE_DIR, ignore_errors=True)
-        self.add_log("Cleared the dedicated Chrome profile for the next sign-in.", "info")
-
-    def select_output_directory(self) -> str:
-        selected = _run_folder_picker(self.output_dir)
-        if selected:
-            self.output_dir = Path(selected)
-            self.output_dir.mkdir(parents=True, exist_ok=True)
-            self.add_log(f"Save folder changed to {self.output_dir}", "success")
-        return str(self.output_dir)
-
-    def start_export(self) -> None:
-        with self.lock:
-            if self.export.running:
-                raise RuntimeError("An export is already running.")
-            self.export.running = True
-            self.export.last_started_at = _utc_now()
-            self.export.last_finished_at = None
-            self.export.last_error = None
-            self.export.last_exit_code = None
-            self.export.requested_count = None
-            self.export.mode = f"{self.active_source}-export"
-            self.export.progress_percent = 0.0
-            self.export.progress_label = f"Preparing {SOURCE_LABELS[self.active_source]} export"
-            self.export.progress_detail = "Connecting to the guided browser session."
-        threading.Thread(target=self._run_export_job, daemon=True).start()
-
-    def _run_export_job(self) -> None:
-        with self.lock:
-            source = self.active_source
-        source_label = SOURCE_LABELS[source]
-        self.add_log(f"Starting the browser scrape for {source_label}.", "info")
-        try:
-            self._update_job_progress(
-                "export",
-                label=f"Preparing {source_label} export",
-                detail="Opening the source page and waiting for it to load.",
-                percent=0.0,
-            )
-            scrape_result = scrape_source(
-                source,
-                DEBUG_HOST,
-                DEBUG_PORT,
-                self.add_log,
-                progress=lambda payload: self._consume_progress_update("export", payload),
-            )
-            self._update_job_progress(
-                "export",
-                label="Writing export files",
-                detail=f"Saving {len(scrape_result.songs)} track(s) into text, CSV, and JSON.",
-                percent=100.0,
-            )
-            manifest = write_exports(
-                self.output_dir,
-                scrape_result.source_platform,
-                scrape_result.playlist_title,
-                scrape_result.reported_count,
-                scrape_result.songs,
-                scrape_result.download_supported,
-            )
-            with self.lock:
-                self.export.running = False
-                self.export.last_finished_at = _utc_now()
-                self.export.last_exit_code = 0
-                self.export.progress_label = "Export complete"
-                self.export.progress_detail = (
-                    f"Saved {manifest['exportedCount']} track(s) into {self.output_dir}."
-                )
-                self.export.progress_percent = 100.0
-            self.add_log(
-                f"{scrape_result.source_label} export finished with {manifest['exportedCount']} tracks in {self.output_dir}.",
-                "success",
-            )
-        except Exception as error:
-            with self.lock:
-                self.export.running = False
-                self.export.last_finished_at = _utc_now()
-                self.export.last_exit_code = 1
-                self.export.last_error = str(error)
-                self.export.progress_label = "Export failed"
-                self.export.progress_detail = str(error)
-                self.export.progress_percent = None
-            self.add_log(str(error), "error")
-
-    def start_download(self, track_keys: list[str] | None, extract_audio: bool) -> None:
-        results = self.get_results()
-        if not results:
-            raise RuntimeError("Run an export first so the app knows which tracks are available.")
-        if not results.get("downloadSupported"):
-            raise RuntimeError(
-                "This export source is metadata-only here. Downloads are only available for YouTube Music exports."
-            )
-
-        tracks = list(results.get("tracks") or [])
-        if track_keys:
-            wanted = set(track_keys)
-            tracks = [track for track in tracks if track.get("trackKey") in wanted]
-        if not tracks:
-            raise RuntimeError("No matching exported tracks were selected for download.")
-
-        with self.lock:
-            if self.download.running:
-                raise RuntimeError("A download job is already running.")
-            self.download.running = True
-            self.download.last_started_at = _utc_now()
-            self.download.last_finished_at = None
-            self.download.last_error = None
-            self.download.last_exit_code = None
-            self.download.requested_count = len(tracks)
-            self.download.mode = "selection-audio" if extract_audio else "selection-media"
-            self.download.progress_percent = 0.0
-            self.download.progress_label = f"Preparing {len(tracks)} exported track(s)"
-            self.download.progress_detail = "Setting up yt-dlp for the selected export links."
-        threading.Thread(
-            target=self._run_download_job,
-            args=(tracks, extract_audio),
-            daemon=True,
-        ).start()
-
-    def start_direct_download(self, urls: list[str], extract_audio: bool) -> None:
+    def start_direct_download(self, session_id: str, urls: list[str], extract_audio: bool) -> None:
         cleaned_urls = [str(url).strip() for url in urls if str(url).strip()]
         if not cleaned_urls:
-            raise RuntimeError("Paste at least one URL before starting a direct download.")
+            raise RuntimeError("Paste at least one URL before starting a download.")
 
-        with self.lock:
-            if self.download.running:
-                raise RuntimeError("A download job is already running.")
-            self.download.running = True
-            self.download.last_started_at = _utc_now()
-            self.download.last_finished_at = None
-            self.download.last_error = None
-            self.download.last_exit_code = None
-            self.download.requested_count = len(cleaned_urls)
-            self.download.mode = "direct-audio" if extract_audio else "direct-media"
-            self.download.progress_percent = 0.0
-            self.download.progress_label = f"Preparing {len(cleaned_urls)} direct URL(s)"
-            self.download.progress_detail = "Setting up yt-dlp for pasted links."
+        run_id = self._set_download_job_started(
+            session_id,
+            mode="direct-audio" if extract_audio else "direct-media",
+            requested_count=len(cleaned_urls),
+            progress_label=f"Preparing {len(cleaned_urls)} link(s)",
+            progress_detail="Setting up yt-dlp for your pasted links.",
+        )
         threading.Thread(
             target=self._run_direct_download_job,
-            args=(cleaned_urls, extract_audio),
+            args=(session_id, run_id, cleaned_urls, extract_audio),
             daemon=True,
         ).start()
 
-    def _run_download_job(self, tracks: list[dict[str, Any]], extract_audio: bool) -> None:
-        try:
-            downloads_dir = download_tracks(
-                tracks,
-                self.output_dir,
-                extract_audio,
-                self.add_log,
-                progress=lambda payload: self._consume_progress_update("download", payload),
-            )
-            with self.lock:
-                self.download.running = False
-                self.download.last_finished_at = _utc_now()
-                self.download.last_exit_code = 0
-                self.download.progress_label = "Download complete"
-                self.download.progress_detail = f"Saved files into {downloads_dir}."
-                self.download.progress_percent = 100.0
-            label = "audio files" if extract_audio else "media files"
-            self.add_log(f"Finished downloading {label} into {downloads_dir}.", "success")
-        except Exception as error:
-            with self.lock:
-                self.download.running = False
-                self.download.last_finished_at = _utc_now()
-                self.download.last_exit_code = 1
-                self.download.last_error = str(error)
-                self.download.progress_label = "Download failed"
-                self.download.progress_detail = str(error)
-                self.download.progress_percent = None
-            self.add_log(str(error), "error")
+    def start_liked_videos_download(self, session_id: str, extract_audio: bool) -> None:
+        session = self.get_session(session_id)
+        if not oauth.is_authenticated(session.root_dir):
+            raise RuntimeError("Sign in with Google first so Music Studio can read your YouTube likes.")
 
-    def _run_direct_download_job(self, urls: list[str], extract_audio: bool) -> None:
-        self.add_log(f"Starting a direct-link download for {len(urls)} URL(s).", "info")
+        run_id = self._set_download_job_started(
+            session_id,
+            mode="liked-audio" if extract_audio else "liked-media",
+            requested_count=None,
+            progress_label="Connecting to your YouTube account",
+            progress_detail="Reading your liked videos with Google OAuth.",
+        )
+        threading.Thread(
+            target=self._run_liked_videos_download_job,
+            args=(session_id, run_id, extract_audio),
+            daemon=True,
+        ).start()
+
+    def _job_root(self, session: SessionState, run_id: str) -> Path:
+        return session.root_dir / "jobs" / run_id
+
+    def _prune_old_jobs(self, session: SessionState, keep: int = 5) -> None:
+        jobs_root = session.root_dir / "jobs"
+        if not jobs_root.exists():
+            return
+        job_dirs = sorted(
+            [path for path in jobs_root.iterdir() if path.is_dir()],
+            key=lambda path: path.stat().st_mtime,
+            reverse=True,
+        )
+        for path in job_dirs[keep:]:
+            shutil.rmtree(path, ignore_errors=True)
+
+    def _write_latest_download_manifest(
+        self,
+        session_id: str,
+        run_id: str,
+        *,
+        source_kind: str,
+        requested_count: int,
+        extract_audio: bool,
+        downloads_dir: Path,
+    ) -> dict[str, Any]:
+        session = self.get_session(session_id)
+        files: list[dict[str, Any]] = []
+        for path in sorted(downloads_dir.rglob("*")):
+            if not path.is_file():
+                continue
+            relative_path = path.relative_to(downloads_dir).as_posix()
+            files.append(
+                {
+                    "name": path.name,
+                    "relativePath": relative_path,
+                    "sizeBytes": path.stat().st_size,
+                    "url": f"/downloads/{run_id}/{_quote_path_segment(relative_path)}",
+                }
+            )
+
+        manifest = {
+            "runId": run_id,
+            "savedAt": _utc_now(),
+            "sourceKind": source_kind,
+            "requestedCount": requested_count,
+            "extractAudio": extract_audio,
+            "completedFileCount": len(files),
+            "files": files,
+        }
+        manifest_path = session.root_dir / "latest-download.json"
+        manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+        self._prune_old_jobs(session)
+        return manifest
+
+    def _finish_download_job_success(
+        self,
+        session_id: str,
+        *,
+        run_id: str,
+        source_kind: str,
+        requested_count: int,
+        extract_audio: bool,
+        downloads_dir: Path,
+    ) -> None:
+        manifest = self._write_latest_download_manifest(
+            session_id,
+            run_id,
+            source_kind=source_kind,
+            requested_count=requested_count,
+            extract_audio=extract_audio,
+            downloads_dir=downloads_dir,
+        )
+        session = self.get_session(session_id)
+        with self.lock:
+            session.download.running = False
+            session.download.last_finished_at = _utc_now()
+            session.download.last_exit_code = 0
+            session.download.progress_label = "Download complete"
+            session.download.progress_detail = (
+                f"Prepared {manifest['completedFileCount']} file(s) for local saving."
+            )
+            session.download.progress_percent = 100.0
+            session.download.active_run_id = run_id
+
+    def _finish_download_job_error(self, session_id: str, error: Exception) -> None:
+        session = self.get_session(session_id)
+        with self.lock:
+            session.download.running = False
+            session.download.last_finished_at = _utc_now()
+            session.download.last_exit_code = 1
+            session.download.last_error = str(error)
+            session.download.progress_label = "Download failed"
+            session.download.progress_detail = str(error)
+            session.download.progress_percent = None
+
+    def _run_direct_download_job(
+        self,
+        session_id: str,
+        run_id: str,
+        urls: list[str],
+        extract_audio: bool,
+    ) -> None:
+        session = self.get_session(session_id)
+        self.add_log(session_id, f"Starting a link download for {len(urls)} URL(s).", "info")
         try:
+            job_root = self._job_root(session, run_id)
             downloads_dir = download_urls(
                 urls,
-                self.output_dir,
+                job_root,
                 extract_audio,
-                self.add_log,
-                progress=lambda payload: self._consume_progress_update("download", payload),
+                lambda message, kind="info": self.add_log(session_id, message, kind),
+                progress=lambda payload: self._update_download_progress(
+                    session_id,
+                    label=str(payload.get("label") or "") or None,
+                    detail=str(payload.get("detail") or "") or None,
+                    percent=payload.get("percent") if isinstance(payload.get("percent"), (int, float)) else None,
+                ),
             )
-            with self.lock:
-                self.download.running = False
-                self.download.last_finished_at = _utc_now()
-                self.download.last_exit_code = 0
-                self.download.progress_label = "Direct download complete"
-                self.download.progress_detail = f"Saved files into {downloads_dir}."
-                self.download.progress_percent = 100.0
-            label = "audio files" if extract_audio else "media files"
-            self.add_log(f"Finished direct-link download of {label} into {downloads_dir}.", "success")
+            self._finish_download_job_success(
+                session_id,
+                run_id=run_id,
+                source_kind="links",
+                requested_count=len(urls),
+                extract_audio=extract_audio,
+                downloads_dir=downloads_dir,
+            )
+            self.add_log(session_id, "Finished preparing files for local download.", "success")
         except Exception as error:
-            with self.lock:
-                self.download.running = False
-                self.download.last_finished_at = _utc_now()
-                self.download.last_exit_code = 1
-                self.download.last_error = str(error)
-                self.download.progress_label = "Direct download failed"
-                self.download.progress_detail = str(error)
-                self.download.progress_percent = None
-            self.add_log(str(error), "error")
+            self._finish_download_job_error(session_id, error)
+            self.add_log(session_id, str(error), "error")
 
-    def resolve_download(self, file_name: str) -> Path | None:
-        safe_name = Path(file_name).name
-        candidate = (self.output_dir / safe_name).resolve()
-        output_root = self.output_dir.resolve()
-        if candidate.parent != output_root or not candidate.exists() or not candidate.is_file():
+    def _run_liked_videos_download_job(
+        self,
+        session_id: str,
+        run_id: str,
+        extract_audio: bool,
+    ) -> None:
+        session = self.get_session(session_id)
+        self.add_log(session_id, "Reading your YouTube liked videos.", "info")
+        try:
+            urls: list[str] = []
+
+            def library_progress(payload: dict[str, Any]) -> None:
+                percent = payload.get("percent")
+                scaled_percent = None
+                if isinstance(percent, (int, float)):
+                    scaled_percent = round(min(40.0, float(percent) * 0.4), 1)
+                self._update_download_progress(
+                    session_id,
+                    label=str(payload.get("label") or "") or None,
+                    detail=str(payload.get("detail") or "") or None,
+                    percent=scaled_percent,
+                )
+
+            liked_videos = youtube.list_liked_videos(session.root_dir, progress=library_progress)
+            urls = [item["url"] for item in liked_videos if item.get("url")]
+            if not urls:
+                raise RuntimeError("No liked YouTube videos were available for this account.")
+
+            self.add_log(session_id, f"Found {len(urls)} liked video(s) in your YouTube account.", "success")
+            self._update_download_progress(
+                session_id,
+                label=f"Downloading {len(urls)} liked video(s)",
+                detail="yt-dlp is now preparing media files from your account list.",
+                percent=40.0,
+            )
+
+            job_root = self._job_root(session, run_id)
+
+            def download_progress(payload: dict[str, Any]) -> None:
+                percent = payload.get("percent")
+                scaled_percent = None
+                if isinstance(percent, (int, float)):
+                    scaled_percent = round(40.0 + (float(percent) * 0.6), 1)
+                self._update_download_progress(
+                    session_id,
+                    label=str(payload.get("label") or "") or None,
+                    detail=str(payload.get("detail") or "") or None,
+                    percent=scaled_percent,
+                )
+
+            downloads_dir = download_urls(
+                urls,
+                job_root,
+                extract_audio,
+                lambda message, kind="info": self.add_log(session_id, message, kind),
+                progress=download_progress,
+            )
+            self._finish_download_job_success(
+                session_id,
+                run_id=run_id,
+                source_kind="youtube-liked-videos",
+                requested_count=len(urls),
+                extract_audio=extract_audio,
+                downloads_dir=downloads_dir,
+            )
+            self.add_log(session_id, "Finished preparing files from your YouTube likes.", "success")
+        except Exception as error:
+            self._finish_download_job_error(session_id, error)
+            self.add_log(session_id, str(error), "error")
+
+    def resolve_download(self, session_id: str, run_id: str, relative_path: str) -> Path | None:
+        session = self.get_session(session_id)
+        downloads_root = (session.root_dir / "jobs" / run_id / "downloads").resolve()
+        candidate = (downloads_root / relative_path).resolve()
+        if downloads_root not in candidate.parents and candidate != downloads_root:
+            return None
+        if not candidate.exists() or not candidate.is_file():
             return None
         return candidate
 
 
 class StudioHandler(BaseHTTPRequestHandler):
-    server_version = "LikedMusicStudio/0.3"
+    server_version = "MusicStudio/1.0"
 
     def __init__(self, *args: Any, state: StudioState, **kwargs: Any) -> None:
         self.state = state
+        self.session_id: str | None = None
+        self._set_cookie = False
         super().__init__(*args, **kwargs)
 
     def log_message(self, format: str, *args: Any) -> None:
         return
 
+    def _ensure_session(self) -> str:
+        if self.session_id:
+            return self.session_id
+
+        cookie_header = self.headers.get("Cookie") or ""
+        cookie = SimpleCookie()
+        if cookie_header:
+            try:
+                cookie.load(cookie_header)
+            except Exception:
+                cookie = SimpleCookie()
+
+        morsel = cookie.get(SESSION_COOKIE_NAME)
+        session_id = morsel.value.strip() if morsel and morsel.value.strip() else ""
+        if not session_id:
+            session_id = secrets.token_urlsafe(24)
+            self._set_cookie = True
+
+        self.session_id = session_id
+        self.state.get_session(session_id)
+        return session_id
+
     def do_GET(self) -> None:
+        session_id = self._ensure_session()
         path = urlparse(self.path).path
         query_params = urllib.parse.parse_qs(urlparse(self.path).query)
 
-        # Temporary debug logging: record incoming requests for diagnosis
-        try:
-            log_file = RUNTIME_DIR / "incoming_requests.log"
-            log_file.parent.mkdir(parents=True, exist_ok=True)
-            with log_file.open("a", encoding="utf-8") as f:
-                from datetime import datetime as _dt
-                f.write(f"{_dt.utcnow().isoformat()}Z {self.client_address} {self.command} {self.path}\n")
-                for name, value in self.headers.items():
-                    f.write(f"{name}: {value}\n")
-                f.write("\n")
-        except Exception:
-            pass
-
-        # Normalize path to accept optional trailing slash (helps proxy differences)
-        if path != "/" and path.endswith("/"):
-            path = path.rstrip("/")
-        
         if path == "/api/status":
-            self._send_json(HTTPStatus.OK, self.state.build_status_payload())
-            return
-        if path == "/api/results":
-            payload = self.state.get_results()
-            if payload is None:
-                self._send_json(HTTPStatus.NOT_FOUND, {"message": "No export found yet."})
-                return
-            self._send_json(HTTPStatus.OK, payload)
+            self._send_json(HTTPStatus.OK, self.state.build_status_payload(session_id))
             return
         if path == "/api/auth/status":
-            self._send_json(HTTPStatus.OK, {
-                "authenticated": oauth.is_authenticated(),
-                "configured": oauth.is_configured(),
-            })
+            session = self.state.get_session(session_id)
+            self._send_json(
+                HTTPStatus.OK,
+                {
+                    "authenticated": oauth.is_authenticated(session.root_dir),
+                    "configured": oauth.is_configured(),
+                },
+            )
             return
         if path == "/api/auth/start":
-            auth_url = oauth.get_google_oauth_url()
+            session = self.state.get_session(session_id)
+            auth_url = oauth.get_google_oauth_url(session.root_dir, session_id)
             if not auth_url:
-                self._send_json(HTTPStatus.BAD_REQUEST, {
-                    "message": "OAuth is not configured. Set GOOGLE_CLIENT_ID and GOOGLE_CLIENT_SECRET environment variables."
-                })
+                self._send_json(
+                    HTTPStatus.BAD_REQUEST,
+                    {
+                        "message": "OAuth is not configured. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and OAUTH_REDIRECT_URI.",
+                    },
+                )
                 return
             self._send_json(HTTPStatus.OK, {"auth_url": auth_url})
             return
@@ -660,75 +515,51 @@ class StudioHandler(BaseHTTPRequestHandler):
             code = (query_params.get("code") or [None])[0]
             state = (query_params.get("state") or [None])[0]
             if not code or not state:
-                self._send_text(HTTPStatus.BAD_REQUEST, "Missing code or state parameter.")
+                self._send_html(
+                    HTTPStatus.BAD_REQUEST,
+                    self._build_oauth_callback_html(False, "Missing code or state parameter."),
+                )
                 return
-            if oauth.exchange_code_for_token(code, state):
-                # Redirect to home page on success
-                self.send_response(HTTPStatus.FOUND)
-                self.send_header("Location", f"/?auth=success")
-                self.end_headers()
-            else:
-                self._send_text(HTTPStatus.UNAUTHORIZED, "Failed to exchange code for token.")
-            return
-        if path == "/api/auth/logout":
-            oauth.clear_oauth_token()
-            self._send_json(HTTPStatus.OK, {"message": "Logged out."})
+            resolved_session_id = oauth.resolve_session_id(state) or session_id
+            if resolved_session_id != session_id:
+                session_id = resolved_session_id
+                self.session_id = resolved_session_id
+                self._set_cookie = True
+            session = self.state.get_session(session_id)
+            success = oauth.exchange_code_for_token(session.root_dir, code, state)
+            self._send_html(
+                HTTPStatus.OK if success else HTTPStatus.UNAUTHORIZED,
+                self._build_oauth_callback_html(
+                    success,
+                    "Google sign-in is complete. You can close this window."
+                    if success
+                    else "Google sign-in failed. Please close this window and try again.",
+                ),
+            )
             return
         if path.startswith("/downloads/"):
-            self._serve_download(unquote(path[len("/downloads/") :]))
+            raw_relative = unquote(path[len("/downloads/") :]).strip("/")
+            if "/" not in raw_relative:
+                self._send_text(HTTPStatus.NOT_FOUND, "Not found")
+                return
+            run_id, relative_path = raw_relative.split("/", 1)
+            file_path = self.state.resolve_download(session_id, run_id, relative_path)
+            if not file_path:
+                self._send_text(HTTPStatus.NOT_FOUND, "Not found")
+                return
+            self._serve_file(file_path, download_name=file_path.name)
             return
         self._serve_static(path)
 
     def do_POST(self) -> None:
+        session_id = self._ensure_session()
         path = urlparse(self.path).path
         body = self._read_json()
         try:
-            if path == "/api/source":
-                source = str(body.get("source") or "")
-                self.state.set_source(source)
-                self._send_json(
-                    HTTPStatus.OK,
-                    {"ok": True, "message": "Source updated.", "source": source},
-                )
-                return
             if path == "/api/auth/logout":
-                oauth.clear_oauth_token()
+                session = self.state.get_session(session_id)
+                oauth.clear_oauth_token(session.root_dir)
                 self._send_json(HTTPStatus.OK, {"ok": True, "message": "Logged out."})
-                return
-            if path == "/api/launch-browser":
-                chrome_path = self.state.launch_guided_chrome()
-                self._send_json(
-                    HTTPStatus.OK,
-                    {"ok": True, "message": "Guided Chrome opened.", "chromePath": chrome_path},
-                )
-                return
-            if path == "/api/export":
-                self.state.start_export()
-                self._send_json(HTTPStatus.ACCEPTED, {"ok": True, "message": "Export started."})
-                return
-            if path == "/api/reset-session":
-                self.state.reset_guided_session()
-                self._send_json(
-                    HTTPStatus.OK, {"ok": True, "message": "Guided Chrome profile cleared."}
-                )
-                return
-            if path == "/api/select-output-folder":
-                directory = self.state.select_output_directory()
-                self._send_json(
-                    HTTPStatus.OK,
-                    {"ok": True, "message": "Save folder updated.", "directory": directory},
-                )
-                return
-            if path == "/api/download":
-                track_keys = body.get("trackKeys") if isinstance(body, dict) else None
-                if track_keys is not None and not isinstance(track_keys, list):
-                    raise RuntimeError("trackKeys must be an array when provided.")
-                extract_audio = bool(body.get("extractAudio")) if isinstance(body, dict) else False
-                self.state.start_download(track_keys, extract_audio)
-                self._send_json(
-                    HTTPStatus.ACCEPTED,
-                    {"ok": True, "message": "Download job started."},
-                )
                 return
             if path == "/api/direct-download":
                 raw_urls = body.get("urls") if isinstance(body, dict) else None
@@ -739,21 +570,22 @@ class StudioHandler(BaseHTTPRequestHandler):
                 else:
                     raise RuntimeError("urls must be provided as a string or an array.")
                 extract_audio = bool(body.get("extractAudio")) if isinstance(body, dict) else False
-                self.state.start_direct_download(urls, extract_audio)
+                self.state.start_direct_download(session_id, urls, extract_audio)
+                self._send_json(HTTPStatus.ACCEPTED, {"ok": True, "message": "Download job started."})
+                return
+            if path == "/api/youtube/download-liked":
+                extract_audio = bool(body.get("extractAudio")) if isinstance(body, dict) else False
+                self.state.start_liked_videos_download(session_id, extract_audio)
                 self._send_json(
                     HTTPStatus.ACCEPTED,
-                    {"ok": True, "message": "Direct download job started."},
+                    {"ok": True, "message": "YouTube liked videos download started."},
                 )
                 return
             self._send_json(HTTPStatus.NOT_FOUND, {"message": "Not found"})
         except RuntimeError as error:
             self._send_json(HTTPStatus.CONFLICT, {"ok": False, "message": str(error)})
-        except ChromeDebugError as error:
-            self._send_json(HTTPStatus.BAD_GATEWAY, {"ok": False, "message": str(error)})
         except Exception as error:
-            self._send_json(
-                HTTPStatus.INTERNAL_SERVER_ERROR, {"ok": False, "message": str(error)}
-            )
+            self._send_json(HTTPStatus.INTERNAL_SERVER_ERROR, {"ok": False, "message": str(error)})
 
     def _read_json(self) -> dict[str, Any]:
         length = int(self.headers.get("Content-Length") or 0)
@@ -764,10 +596,40 @@ class StudioHandler(BaseHTTPRequestHandler):
             return {}
         return json.loads(raw)
 
+    def _apply_common_headers(self) -> None:
+        if self._set_cookie and self.session_id:
+            secure = self.headers.get("X-Forwarded-Proto", "").lower() == "https"
+            cookie_value = f"{SESSION_COOKIE_NAME}={self.session_id}; Path=/; HttpOnly; SameSite=Lax"
+            if secure:
+                cookie_value += "; Secure"
+            self.send_header("Set-Cookie", cookie_value)
+            self._set_cookie = False
+
     def _send_json(self, status: HTTPStatus, payload: dict[str, Any]) -> None:
         body = json.dumps(payload, indent=2).encode("utf-8")
         self.send_response(status)
+        self._apply_common_headers()
         self.send_header("Content-Type", "application/json; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self._write_body(body)
+
+    def _send_text(self, status: HTTPStatus, payload: str) -> None:
+        body = payload.encode("utf-8")
+        self.send_response(status)
+        self._apply_common_headers()
+        self.send_header("Content-Type", "text/plain; charset=utf-8")
+        self.send_header("Cache-Control", "no-store")
+        self.send_header("Content-Length", str(len(body)))
+        self.end_headers()
+        self._write_body(body)
+
+    def _send_html(self, status: HTTPStatus, payload: str) -> None:
+        body = payload.encode("utf-8")
+        self.send_response(status)
+        self._apply_common_headers()
+        self.send_header("Content-Type", "text/html; charset=utf-8")
         self.send_header("Cache-Control", "no-store")
         self.send_header("Content-Length", str(len(body)))
         self.end_headers()
@@ -783,46 +645,74 @@ class StudioHandler(BaseHTTPRequestHandler):
         if not file_path.exists() or not file_path.is_file():
             self._send_text(HTTPStatus.NOT_FOUND, "Not found")
             return
-        mime_type, _ = mimetypes.guess_type(file_path.name)
-        payload = file_path.read_bytes()
-        self.send_response(HTTPStatus.OK)
-        self.send_header("Content-Type", f"{mime_type or 'application/octet-stream'}; charset=utf-8")
-        self.send_header("Cache-Control", "no-store")
-        self.send_header("Content-Length", str(len(payload)))
-        self.end_headers()
-        self._write_body(payload)
+        self._serve_file(file_path)
 
-    def _serve_download(self, file_name: str) -> None:
-        file_path = self.state.resolve_download(file_name)
-        if not file_path:
-            self._send_text(HTTPStatus.NOT_FOUND, "Not found")
+    def _serve_file(self, file_path: Path, download_name: str | None = None) -> None:
+        mime_type, _ = mimetypes.guess_type(file_path.name)
+        self.send_response(HTTPStatus.OK)
+        self._apply_common_headers()
+        self.send_header("Content-Type", f"{mime_type or 'application/octet-stream'}")
+        self.send_header("Cache-Control", "no-store")
+        if download_name:
+            self.send_header("Content-Disposition", f'attachment; filename="{download_name}"')
+        self.send_header("Content-Length", str(file_path.stat().st_size))
+        self.end_headers()
+        try:
+            with file_path.open("rb") as handle:
+                shutil.copyfileobj(handle, self.wfile)
+        except OSError:
             return
-        mime_type, _ = mimetypes.guess_type(file_path.name)
-        payload = file_path.read_bytes()
-        self.send_response(HTTPStatus.OK)
-        self.send_header(
-            "Content-Type", f"{mime_type or 'application/octet-stream'}; charset=utf-8"
-        )
-        self.send_header("Cache-Control", "no-store")
-        self.send_header("Content-Disposition", f'attachment; filename="{file_path.name}"')
-        self.send_header("Content-Length", str(len(payload)))
-        self.end_headers()
-        self._write_body(payload)
-
-    def _send_text(self, status: HTTPStatus, payload: str) -> None:
-        body = payload.encode("utf-8")
-        self.send_response(status)
-        self.send_header("Content-Type", "text/plain; charset=utf-8")
-        self.send_header("Cache-Control", "no-store")
-        self.send_header("Content-Length", str(len(body)))
-        self.end_headers()
-        self._write_body(body)
 
     def _write_body(self, payload: bytes) -> None:
         try:
             self.wfile.write(payload)
         except OSError:
             return
+
+    def _build_oauth_callback_html(self, success: bool, message: str) -> str:
+        payload = "true" if success else "false"
+        safe_message = json.dumps(message)
+        return f"""<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <title>Music Studio Sign-In</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <style>
+      body {{
+        margin: 0;
+        min-height: 100vh;
+        display: grid;
+        place-items: center;
+        background: #f5efe3;
+        color: #102127;
+        font: 16px/1.5 Georgia, serif;
+      }}
+      main {{
+        max-width: 32rem;
+        padding: 2rem;
+        border-radius: 24px;
+        background: rgba(255, 255, 255, 0.88);
+        box-shadow: 0 20px 60px rgba(16, 33, 39, 0.12);
+      }}
+    </style>
+  </head>
+  <body>
+    <main>
+      <h1>{'Signed in' if success else 'Sign-in failed'}</h1>
+      <p>{message}</p>
+      <p>You can close this window if it does not close automatically.</p>
+    </main>
+    <script>
+      const success = {payload};
+      const message = {safe_message};
+      if (window.opener) {{
+        window.opener.postMessage({{ type: 'music-studio-auth', success, message }}, window.location.origin);
+      }}
+      setTimeout(() => window.close(), 150);
+    </script>
+  </body>
+</html>"""
 
 
 def _create_server(handler: Any) -> tuple[ThreadingHTTPServer, int]:
@@ -842,22 +732,13 @@ def _create_server(handler: Any) -> tuple[ThreadingHTTPServer, int]:
 
 
 def main() -> None:
-    state = StudioState(app_port=DEFAULT_PORT)
+    state = StudioState()
     handler = partial(StudioHandler, state=state)
     server, actual_port = _create_server(handler)
-    state.app_port = actual_port
-    state.app_url = f"http://{APP_HOST}:{actual_port}"
-    if actual_port != DEFAULT_PORT and "PORT" not in os.environ:
-        state.add_log(
-            f"Port {DEFAULT_PORT} was busy, so {APP_NAME} moved to {state.app_url}.",
-            "info",
-        )
-    state.add_log(f"{APP_NAME} is running at {state.app_url}", "success")
-    state.add_log("Both YouTube Music and Spotify exports use the local browser session, not API keys.", "info")
-    print(f"{APP_NAME} is running at {state.app_url}")
-    if os.environ.get("NO_OPEN_BROWSER") != "1":
+    print(f"{APP_NAME} is running on port {actual_port}")
+    if os.environ.get("NO_OPEN_BROWSER") != "1" and APP_HOST in {"127.0.0.1", "localhost"}:
         try:
-            webbrowser.open(state.app_url)
+            webbrowser.open(f"http://{APP_HOST}:{actual_port}")
         except Exception:
             pass
     try:

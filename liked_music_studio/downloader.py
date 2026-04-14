@@ -10,17 +10,10 @@ import urllib.request
 from pathlib import Path
 from shutil import which
 from typing import Any, Callable
-from urllib.parse import urlparse
 
-from .devtools import ChromeDebugError, export_source_cookies
 
 BASE_DIR = Path(__file__).resolve().parents[1]
-GUIDED_CHROME_PROFILE_DIR = BASE_DIR / "runtime" / "chrome-profile"
 FFMPEG_TOOL_DIR = BASE_DIR / "runtime" / "tools" / "ffmpeg"
-COOKIE_EXPORT_DIR = BASE_DIR / "runtime" / "cookies"
-YTDLP_COOKIE_FILE = COOKIE_EXPORT_DIR / "ytmusic-cookies.txt"
-DEBUG_HOST = os.environ.get("YTMUSIC_DEBUG_HOST", "127.0.0.1")
-DEBUG_PORT = int(os.environ.get("YTMUSIC_DEBUG_PORT", "9224"))
 GITHUB_API_HEADERS = {
     "Accept": "application/vnd.github+json",
     "User-Agent": "Music-Studio",
@@ -41,7 +34,6 @@ def _resolve_ffmpeg_path(require_binary: bool = False) -> tuple[str | None, str 
     if system_path:
         return system_path, "system"
 
-    # Fallback to common winget installation paths on Windows
     if os.name == "nt":
         winget_path = _find_winget_binary("ffmpeg")
         if winget_path:
@@ -71,7 +63,6 @@ def _resolve_ffprobe_path() -> tuple[str | None, str | None]:
     if system_path:
         return system_path, "system"
 
-    # Fallback to common winget installation paths on Windows
     if os.name == "nt":
         winget_path = _find_winget_binary("ffprobe")
         if winget_path:
@@ -91,13 +82,11 @@ def _find_winget_binary(tool_name: str) -> Path | None:
     if not winget_root.exists():
         return None
 
-    # Search for yt-dlp.FFmpeg or Gyan.FFmpeg folders
     suffix = ".exe" if os.name == "nt" else ""
     for package_dir in winget_root.glob("*FFmpeg*"):
         for bin_path in package_dir.rglob(f"bin/{tool_name}{suffix}"):
             if bin_path.exists():
                 return bin_path
-        # Some packages might have it directly or in other subfolders
         for binary in package_dir.rglob(f"{tool_name}{suffix}"):
             if binary.exists():
                 return binary
@@ -163,10 +152,7 @@ def _try_install_portable_ffmpeg(log: Callable[[str, str], None]) -> bool:
         )
         return False
 
-    log(
-        "Trying a portable FFmpeg download into the app runtime folder so MP3 extraction can work without a separate install.",
-        "info",
-    )
+    log("Trying a portable FFmpeg download into the app runtime folder.", "info")
     try:
         release_request = urllib.request.Request(
             "https://api.github.com/repos/eugeneware/ffmpeg-static/releases/latest",
@@ -175,7 +161,10 @@ def _try_install_portable_ffmpeg(log: Callable[[str, str], None]) -> bool:
         with urllib.request.urlopen(release_request, timeout=30) as response:
             release_data = json.load(response)
 
-        assets = {asset.get("name"): asset.get("browser_download_url") for asset in release_data.get("assets", [])}
+        assets = {
+            asset.get("name"): asset.get("browser_download_url")
+            for asset in release_data.get("assets", [])
+        }
         for tool_name, asset_name in zip(("ffmpeg", "ffprobe"), asset_names):
             asset_url = assets.get(asset_name)
             if not asset_url:
@@ -267,22 +256,17 @@ def _ensure_audio_toolchain(log: Callable[[str, str], None]) -> str:
             "info",
         )
     else:
-        log(
-            "MP3 extraction needs both ffmpeg and ffprobe. Trying to install them automatically.",
-            "info",
-        )
+        log("MP3 extraction needs both ffmpeg and ffprobe. Trying to install them automatically.", "info")
 
     if _try_auto_install_ffmpeg(log):
-        ffmpeg_path, ffmpeg_mode = _resolve_ffmpeg_path(require_binary=True)
+        ffmpeg_path, _ = _resolve_ffmpeg_path(require_binary=True)
         ffprobe_path, _ = _resolve_ffprobe_path()
         if ffmpeg_path and ffprobe_path:
             log("FFmpeg and ffprobe are now available for audio extraction.", "success")
             return ffmpeg_path
 
     raise RuntimeError(
-        "MP3 extraction needs both ffmpeg and ffprobe. Music Studio tried automatic system install and a portable download, "
-        "but neither finished successfully. On Windows, install FFmpeg with `winget install --id yt-dlp.FFmpeg --exact`. "
-        "On macOS, install it with `brew install ffmpeg`."
+        "MP3 extraction needs both ffmpeg and ffprobe. Music Studio tried automatic installation but it did not finish successfully."
     )
 
 
@@ -314,114 +298,6 @@ def get_tool_status() -> dict[str, dict[str, Any]]:
         },
     }
 
-def _has_guided_chrome_cookies(profile_dir: Path) -> bool:
-    if not profile_dir.exists():
-        return False
-    if (profile_dir / "Local State").exists():
-        return True
-    cookie_candidates = (
-        profile_dir / "Default" / "Cookies",
-        profile_dir / "Default" / "Network" / "Cookies",
-        profile_dir / "Profile 1" / "Cookies",
-        profile_dir / "Profile 1" / "Network" / "Cookies",
-    )
-    return any(candidate.exists() for candidate in cookie_candidates)
-
-
-def _netscape_cookie_domain(cookie: dict[str, Any]) -> str:
-    domain = str(cookie.get("domain") or "").strip()
-    if not domain:
-        return domain
-    if bool(cookie.get("httpOnly")) and not domain.startswith("#HttpOnly_"):
-        return f"#HttpOnly_{domain}"
-    return domain
-
-
-def _cookie_domain_for_scope(domain: str) -> str:
-    return domain[len("#HttpOnly_") :] if domain.startswith("#HttpOnly_") else domain
-
-
-def _write_netscape_cookie_file(cookies: list[dict[str, Any]], destination: Path) -> Path:
-    destination.parent.mkdir(parents=True, exist_ok=True)
-    lines = [
-        "# Netscape HTTP Cookie File",
-        "# Exported by Music Studio from the Guided Chrome session.",
-    ]
-    for cookie in cookies:
-        name = str(cookie.get("name") or "").replace("\t", " ").replace("\r", " ").replace("\n", " ")
-        value = str(cookie.get("value") or "").replace("\t", " ").replace("\r", " ").replace("\n", " ")
-        domain = _netscape_cookie_domain(cookie)
-        if not name or not domain:
-            continue
-        include_subdomains = "TRUE" if _cookie_domain_for_scope(domain).startswith(".") else "FALSE"
-        path = str(cookie.get("path") or "/").replace("\t", " ").replace("\r", " ").replace("\n", " ")
-        secure = "TRUE" if bool(cookie.get("secure")) else "FALSE"
-        expires_raw = cookie.get("expires")
-        expires = str(max(int(float(expires_raw or 0)), 0))
-        lines.append(
-            "\t".join([domain, include_subdomains, path, secure, expires, name, value])
-        )
-    destination.write_text("\r\n".join(lines) + "\r\n", encoding="utf-8")
-    return destination
-
-
-def _export_guided_cookie_file(log: Callable[[str, str], None]) -> Path | None:
-    try:
-        cookies = export_source_cookies("ytmusic", DEBUG_HOST, DEBUG_PORT)
-    except ChromeDebugError as error:
-        log(
-            f"Guided Chrome cookie export was unavailable, so yt-dlp will fall back to direct browser cookies. {error}",
-            "info",
-        )
-        return None
-    except Exception as error:
-        log(
-            f"Guided Chrome cookie export failed unexpectedly, so yt-dlp will fall back to direct browser cookies. {error}",
-            "info",
-        )
-        return None
-
-    if not cookies:
-        log(
-            "Guided Chrome is connected, but no YouTube cookies were available yet. Sign in there first if a track needs authentication.",
-            "info",
-        )
-        return None
-
-    cookie_file = _write_netscape_cookie_file(cookies, YTDLP_COOKIE_FILE)
-    log(
-        "Exported cookies from the Guided Chrome session for yt-dlp, which avoids Chrome cookie database copy errors.",
-        "info",
-    )
-    return cookie_file
-
-
-def _is_youtube_url(url: str) -> bool:
-    try:
-        host = urlparse(url).netloc.lower()
-    except Exception:
-        return False
-    return any(
-        host == candidate or host.endswith(f".{candidate}")
-        for candidate in ("youtube.com", "youtu.be", "music.youtube.com")
-    )
-
-
-def _build_cookie_options(log: Callable[[str, str], None], urls: list[str]) -> dict[str, Any]:
-    if not any(_is_youtube_url(url) for url in urls):
-        return {}
-
-    cookie_file = _export_guided_cookie_file(log)
-    if cookie_file:
-        return {"cookiefile": str(cookie_file)}
-
-    log(
-        "Direct downloads will proceed without cookies because Guided Chrome is closed or unavailable. "
-        "If your download fails because it requires Sign In, reopen Guided Chrome and stay signed in.",
-        "info",
-    )
-    return {}
-
 
 class _YtDlpLogger:
     def __init__(self, log: Callable[[str, str], None]) -> None:
@@ -445,46 +321,7 @@ class _YtDlpLogger:
         text = str(message or "").strip()
         if not text:
             return
-        upper = text.upper()
         self._log(text, kind)
-        if "SIGN IN TO CONFIRM YOUR AGE" in upper or "USE --COOKIES-FROM-BROWSER" in upper:
-            self._log(
-                "YouTube wants an authenticated browser session. Make sure you're signed into YouTube in your Chrome browser, then retry the download.",
-                "error",
-            )
-        if "COULD NOT COPY CHROME COOKIE DATABASE" in upper or "FAILED TO LOAD COOKIES" in upper:
-            self._log(
-                "yt-dlp could not read Chrome's cookie database. Check that Chrome is closed, then retry the download.",
-                "error",
-            )
-
-
-def _build_progress_hook(log: Callable[[str, str], None]) -> Callable[[dict[str, Any]], None]:
-    seen_messages: set[str] = set()
-
-    def hook(update: dict[str, Any]) -> None:
-        status = str(update.get("status") or "")
-        if status == "finished":
-            filename = str(update.get("filename") or "").strip()
-            if filename:
-                log(f"Finished downloading {Path(filename).name}", "success")
-            return
-
-        if status != "downloading":
-            return
-
-        percent = str(update.get("_percent_str") or "").strip()
-        speed = str(update.get("_speed_str") or "").strip()
-        eta = str(update.get("_eta_str") or "").strip()
-        filename = str(update.get("filename") or update.get("info_dict", {}).get("title") or "").strip()
-        parts = [part for part in [percent, speed, eta] if part]
-        summary = " ".join(parts)
-        message = f"Downloading {Path(filename).name if filename else 'track'} {summary}".strip()
-        if message and message not in seen_messages:
-            seen_messages.add(message)
-            log(message, "info")
-
-    return hook
 
 
 def _parse_fraction(update: dict[str, Any]) -> float:
@@ -509,13 +346,7 @@ def _emit_progress(
 ) -> None:
     if not callback:
         return
-    callback(
-        {
-            "label": label,
-            "detail": detail,
-            "percent": percent,
-        }
-    )
+    callback({"label": label, "detail": detail, "percent": percent})
 
 
 def _build_download_progress_hook(
@@ -523,12 +354,11 @@ def _build_download_progress_hook(
     log: Callable[[str, str], None],
     progress: ProgressCallback | None,
 ) -> Callable[[dict[str, Any]], None]:
-    base_hook = _build_progress_hook(log)
+    seen_messages: set[str] = set()
     finished_ids: set[str] = set()
     state = {"completed": 0}
 
     def hook(update: dict[str, Any]) -> None:
-        base_hook(update)
         status = str(update.get("status") or "")
         info = update.get("info_dict") if isinstance(update.get("info_dict"), dict) else {}
         title = str(info.get("title") or update.get("filename") or "track").strip()
@@ -539,6 +369,7 @@ def _build_download_progress_hook(
                 finished_ids.add(marker)
                 state["completed"] += 1
             overall = min(100.0, (state["completed"] / max(total_urls, 1)) * 100.0)
+            log(f"Finished downloading {Path(title).name}", "success")
             _emit_progress(
                 progress,
                 label=f"Downloaded {state['completed']} of {total_urls}",
@@ -559,6 +390,10 @@ def _build_download_progress_hook(
             str(update.get("_eta_str") or "").strip(),
         ]
         summary = " ".join(part for part in summary_parts if part)
+        message = f"Downloading {Path(title).name} {summary}".strip()
+        if message and message not in seen_messages:
+            seen_messages.add(message)
+            log(message, "info")
         detail = f"{Path(title).name}"
         if summary:
             detail = f"{detail} | {summary}"
@@ -592,6 +427,7 @@ def _download_url_batch(
     extract_audio: bool,
     log: Callable[[str, str], None],
     progress: ProgressCallback | None = None,
+    http_headers: dict[str, str] | None = None,
 ) -> Path:
     normalized_urls = _normalize_urls(urls)
     if not normalized_urls:
@@ -601,12 +437,10 @@ def _download_url_batch(
         from yt_dlp import YoutubeDL
     except Exception as error:
         raise RuntimeError(
-            "yt-dlp is not available yet. Run the launcher again so dependencies can install."
+            "yt-dlp is not available yet. Restart the app so dependencies can install."
         ) from error
 
     ffmpeg_path = _ensure_audio_toolchain(log) if extract_audio else None
-    cookie_options = _build_cookie_options(log, normalized_urls)
-
     downloads_dir = output_dir / "downloads"
     downloads_dir.mkdir(parents=True, exist_ok=True)
 
@@ -627,7 +461,8 @@ def _download_url_batch(
         "logger": logger,
         "progress_hooks": [_build_download_progress_hook(len(normalized_urls), log, progress)],
     }
-    ydl_options.update(cookie_options)
+    if http_headers:
+        ydl_options["http_headers"] = dict(http_headers)
     if extract_audio:
         ydl_options["format"] = "bestaudio/best"
         ydl_options["ffmpeg_location"] = str(Path(ffmpeg_path).parent)
@@ -664,17 +499,12 @@ def download_tracks(
     extract_audio: bool,
     log: Callable[[str, str], None],
     progress: ProgressCallback | None = None,
+    http_headers: dict[str, str] | None = None,
 ) -> Path:
-    if any(track.get("sourcePlatform") != "ytmusic" for track in tracks):
-        raise RuntimeError(
-            "Downloads are only supported for YouTube Music exports. Spotify exports stay metadata-only."
-        )
-
     urls = [track.get("url") for track in tracks if isinstance(track.get("url"), str) and track["url"]]
     if not urls:
-        raise RuntimeError("No downloadable YouTube URLs were found in the selected tracks.")
-
-    return _download_url_batch(urls, output_dir, extract_audio, log, progress)
+        raise RuntimeError("No downloadable URLs were found in the selected tracks.")
+    return _download_url_batch(urls, output_dir, extract_audio, log, progress, http_headers)
 
 
 def download_urls(
@@ -683,5 +513,6 @@ def download_urls(
     extract_audio: bool,
     log: Callable[[str, str], None],
     progress: ProgressCallback | None = None,
+    http_headers: dict[str, str] | None = None,
 ) -> Path:
-    return _download_url_batch(urls, output_dir, extract_audio, log, progress)
+    return _download_url_batch(urls, output_dir, extract_audio, log, progress, http_headers)
