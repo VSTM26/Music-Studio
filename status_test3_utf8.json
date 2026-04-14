@@ -1,0 +1,1441 @@
+﻿{
+  "app": {
+    "name": "Liked Music Studio",
+    "version": "0.4.5",
+    "port": 4173,
+    "url": "http://127.0.0.1:4173"
+  },
+  "sources": {
+    "active": "ytmusic",
+    "labels": {
+      "ytmusic": "YouTube Music",
+      "spotify": "Spotify"
+    }
+  },
+  "privacy": {
+    "usesApiKeys": false,
+    "browserSessionOnly": true
+  },
+  "chrome": {
+    "found": true,
+    "path": "C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe",
+    "profileDir": "C:\\Users\\saisu\\Downloads\\Music Studio\\runtime\\chrome-profile"
+  },
+  "debug": {
+    "connected": false,
+    "browser": null,
+    "ytmusicTabOpen": false,
+    "ytmusicTabTitle": null,
+    "spotifyTabOpen": false,
+    "spotifyTabTitle": null,
+    "pageCount": 0,
+    "message": "[WinError 10061] No connection could be made because the target machine actively refused it"
+  },
+  "output": {
+    "directory": "C:\\Users\\saisu\\Downloads\\Music Studio\\output",
+    "downloadsDirectory": "C:\\Users\\saisu\\Downloads\\Music Studio\\output\\downloads"
+  },
+  "tools": {
+    "ytDlp": {
+      "available": true,
+      "mode": "python-module",
+      "path": "C:\\Users\\saisu\\AppData\\Local\\Programs\\Python\\Python313\\Scripts\\yt-dlp.EXE"
+    },
+    "ffmpeg": {
+      "available": true,
+      "mode": "winget",
+      "path": "C:\\Users\\saisu\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg.Essentials_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-8.1-essentials_build\\bin\\ffmpeg.exe"
+    },
+    "ffprobe": {
+      "available": true,
+      "mode": "winget",
+      "path": "C:\\Users\\saisu\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg.Essentials_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-8.1-essentials_build\\bin\\ffprobe.exe"
+    },
+    "audioExtraction": {
+      "available": true,
+      "mode": "winget",
+      "path": "C:\\Users\\saisu\\AppData\\Local\\Microsoft\\WinGet\\Packages\\Gyan.FFmpeg.Essentials_Microsoft.Winget.Source_8wekyb3d8bbwe\\ffmpeg-8.1-essentials_build\\bin\\ffmpeg.exe"
+    }
+  },
+  "export": {
+    "running": false,
+    "last_started_at": "2026-04-11T03:26:43Z",
+    "last_finished_at": "2026-04-11T03:27:50Z",
+    "last_error": null,
+    "last_exit_code": 0,
+    "requested_count": null,
+    "mode": "ytmusic-export",
+    "progress_percent": 100.0,
+    "progress_label": "Export complete",
+    "progress_detail": "Saved 670 track(s) into C:\\Users\\saisu\\Downloads\\Music Studio\\output."
+  },
+  "download": {
+    "running": false,
+    "last_started_at": "2026-04-11T14:50:57Z",
+    "last_finished_at": "2026-04-11T14:51:03Z",
+    "last_error": "yt-dlp exited with code 1.",
+    "last_exit_code": 1,
+    "requested_count": 1,
+    "mode": "direct-audio",
+    "progress_percent": null,
+    "progress_label": "Direct download failed",
+    "progress_detail": "yt-dlp exited with code 1."
+  },
+  "progress": {
+    "kind": "download",
+    "running": false,
+    "label": "Direct download failed",
+    "detail": "yt-dlp exited with code 1.",
+    "percent": null
+  },
+  "latestExport": {
+    "title": "Liked Music",
+    "sourcePlatform": "ytmusic",
+    "sourceLabel": "YouTube Music",
+    "downloadSupported": true,
+    "exportedAt": "2026-04-11T03:27:50Z",
+    "reportedTrackCount": 825,
+    "exportedCount": 670,
+    "mismatchCount": 155,
+    "jsonFileName": "ytmusic-liked-songs-20260410-222750.json",
+    "files": [
+      {
+        "name": "ytmusic-liked-songs-20260410-222750.txt",
+        "sizeBytes": 41346,
+        "url": "/downloads/ytmusic-liked-songs-20260410-222750.txt"
+      },
+      {
+        "name": "ytmusic-liked-songs-20260410-222750.csv",
+        "sizeBytes": 136399,
+        "url": "/downloads/ytmusic-liked-songs-20260410-222750.csv"
+      },
+      {
+        "name": "ytmusic-liked-songs-20260410-222750.json",
+        "sizeBytes": 389101,
+        "url": "/downloads/ytmusic-liked-songs-20260410-222750.json"
+      }
+    ]
+  },
+  "logs": [
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=KLdcM9GXO2c",
+      "timestamp": "2026-04-11T03:56:11Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] KLdcM9GXO2c: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:11Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] KLdcM9GXO2c: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:12Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] KLdcM9GXO2c: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:13Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] KLdcM9GXO2c: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:13Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:13Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] KLdcM9GXO2c: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:13Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=43TmnIaL3n4",
+      "timestamp": "2026-04-11T03:56:13Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 43TmnIaL3n4: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:13Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 43TmnIaL3n4: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:14Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 43TmnIaL3n4: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:15Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 43TmnIaL3n4: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:15Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:15Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] 43TmnIaL3n4: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:15Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=4vYOwhll1fs",
+      "timestamp": "2026-04-11T03:56:15Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 4vYOwhll1fs: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:15Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 4vYOwhll1fs: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:17Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 4vYOwhll1fs: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:18Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 4vYOwhll1fs: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:18Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:18Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] 4vYOwhll1fs: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:18Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=3OMNrIYfd5w",
+      "timestamp": "2026-04-11T03:56:18Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 3OMNrIYfd5w: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:18Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 3OMNrIYfd5w: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:19Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 3OMNrIYfd5w: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:20Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 3OMNrIYfd5w: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:20Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:20Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] 3OMNrIYfd5w: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:20Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=7DEjoQjHZLM",
+      "timestamp": "2026-04-11T03:56:20Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 7DEjoQjHZLM: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:20Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 7DEjoQjHZLM: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:22Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 7DEjoQjHZLM: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:22Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 7DEjoQjHZLM: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:22Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:22Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] 7DEjoQjHZLM: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:22Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=VuM15F_NqB8",
+      "timestamp": "2026-04-11T03:56:22Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] VuM15F_NqB8: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:22Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] VuM15F_NqB8: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:24Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] VuM15F_NqB8: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:24Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] VuM15F_NqB8: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:24Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:24Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] VuM15F_NqB8: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:25Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=AqHlQL3PoD8",
+      "timestamp": "2026-04-11T03:56:25Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] AqHlQL3PoD8: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:25Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] AqHlQL3PoD8: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:26Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] AqHlQL3PoD8: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:27Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] AqHlQL3PoD8: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:27Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:27Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] AqHlQL3PoD8: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:27Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=EASIaOpeSTY",
+      "timestamp": "2026-04-11T03:56:27Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] EASIaOpeSTY: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:27Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] EASIaOpeSTY: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:28Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] EASIaOpeSTY: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:29Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] EASIaOpeSTY: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:29Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:29Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] EASIaOpeSTY: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:29Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=V_jHc_n0p9c",
+      "timestamp": "2026-04-11T03:56:29Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] V_jHc_n0p9c: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:29Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] V_jHc_n0p9c: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:31Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] V_jHc_n0p9c: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:31Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] V_jHc_n0p9c: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:31Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:32Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] V_jHc_n0p9c: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:32Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=Uq9gPaIzbe8",
+      "timestamp": "2026-04-11T03:56:32Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Uq9gPaIzbe8: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:32Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Uq9gPaIzbe8: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:33Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Uq9gPaIzbe8: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:34Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Uq9gPaIzbe8: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:34Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:34Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] Uq9gPaIzbe8: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:34Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=GmG4X9PGOXs",
+      "timestamp": "2026-04-11T03:56:34Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] GmG4X9PGOXs: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:34Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] GmG4X9PGOXs: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:36Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] GmG4X9PGOXs: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:36Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:36Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] GmG4X9PGOXs: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:36Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=AuWoEYPBfrw",
+      "timestamp": "2026-04-11T03:56:36Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] AuWoEYPBfrw: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:36Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] AuWoEYPBfrw: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:38Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] AuWoEYPBfrw: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:38Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:39Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] AuWoEYPBfrw: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:39Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=92ydUdqWE1g",
+      "timestamp": "2026-04-11T03:56:39Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 92ydUdqWE1g: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:39Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 92ydUdqWE1g: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:40Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 92ydUdqWE1g: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:40Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 92ydUdqWE1g: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:40Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:40Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] 92ydUdqWE1g: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:40Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=GQdkjg4zgqU",
+      "timestamp": "2026-04-11T03:56:40Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] GQdkjg4zgqU: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:40Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] GQdkjg4zgqU: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:42Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] GQdkjg4zgqU: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:42Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] GQdkjg4zgqU: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:42Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:42Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] GQdkjg4zgqU: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:42Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=87gWaABqGYs",
+      "timestamp": "2026-04-11T03:56:42Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 87gWaABqGYs: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:42Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 87gWaABqGYs: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:44Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 87gWaABqGYs: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:44Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 87gWaABqGYs: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:44Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:45Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] 87gWaABqGYs: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:45Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=XHEp2Ka7ggg",
+      "timestamp": "2026-04-11T03:56:45Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] XHEp2Ka7ggg: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:45Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] XHEp2Ka7ggg: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:46Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] XHEp2Ka7ggg: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:46Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:46Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] XHEp2Ka7ggg: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:46Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=-RJSbO8UZVY",
+      "timestamp": "2026-04-11T03:56:46Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] -RJSbO8UZVY: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:46Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] -RJSbO8UZVY: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:47Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] -RJSbO8UZVY: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:48Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] -RJSbO8UZVY: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:48Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:48Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] -RJSbO8UZVY: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:48Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=Rs1HqzgM-q8",
+      "timestamp": "2026-04-11T03:56:48Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Rs1HqzgM-q8: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:48Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Rs1HqzgM-q8: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:49Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Rs1HqzgM-q8: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:50Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Rs1HqzgM-q8: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:50Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:50Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] Rs1HqzgM-q8: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:50Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=D9G1VOjN_84",
+      "timestamp": "2026-04-11T03:56:50Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] D9G1VOjN_84: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:50Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] D9G1VOjN_84: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:52Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] D9G1VOjN_84: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:52Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] D9G1VOjN_84: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:52Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:52Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] D9G1VOjN_84: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:52Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=6JcpqALlUTs",
+      "timestamp": "2026-04-11T03:56:52Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 6JcpqALlUTs: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:52Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 6JcpqALlUTs: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:53Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 6JcpqALlUTs: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:54Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 6JcpqALlUTs: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:54Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:54Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] 6JcpqALlUTs: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:54Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=EhMJx8C-flM",
+      "timestamp": "2026-04-11T03:56:54Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] EhMJx8C-flM: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:54Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] EhMJx8C-flM: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:55Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] EhMJx8C-flM: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:56Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] EhMJx8C-flM: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:56Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:56Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] EhMJx8C-flM: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:56Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=Eb0L24QXY4s",
+      "timestamp": "2026-04-11T03:56:56Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Eb0L24QXY4s: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:56Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Eb0L24QXY4s: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:56:58Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Eb0L24QXY4s: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:56:58Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:56:58Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] Eb0L24QXY4s: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:56:58Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=CfkxLRuSteI",
+      "timestamp": "2026-04-11T03:56:58Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] CfkxLRuSteI: Downloading webpage",
+      "timestamp": "2026-04-11T03:56:58Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] CfkxLRuSteI: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:57:00Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] CfkxLRuSteI: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:57:00Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] CfkxLRuSteI: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:57:00Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:57:00Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] CfkxLRuSteI: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:57:00Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=2tZjT3L1wD4",
+      "timestamp": "2026-04-11T03:57:00Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 2tZjT3L1wD4: Downloading webpage",
+      "timestamp": "2026-04-11T03:57:00Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 2tZjT3L1wD4: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:57:02Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 2tZjT3L1wD4: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:57:03Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] 2tZjT3L1wD4: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:57:03Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:57:03Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] 2tZjT3L1wD4: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:57:03Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=ApXoWvfEYVU",
+      "timestamp": "2026-04-11T03:57:03Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] ApXoWvfEYVU: Downloading webpage",
+      "timestamp": "2026-04-11T03:57:03Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] ApXoWvfEYVU: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T03:57:05Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] ApXoWvfEYVU: Signature solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:57:05Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "[youtube] ApXoWvfEYVU: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T03:57:05Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T03:57:05Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] ApXoWvfEYVU: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T03:57:05Z"
+    },
+    {
+      "id": "3736-221",
+      "kind": "error",
+      "message": "yt-dlp exited with code 1.",
+      "timestamp": "2026-04-11T03:57:05Z"
+    },
+    {
+      "id": "63888-221",
+      "kind": "info",
+      "message": "Starting a direct-link download for 1 URL(s).",
+      "timestamp": "2026-04-11T14:35:02Z"
+    },
+    {
+      "id": "63888-221",
+      "kind": "info",
+      "message": "Guided Chrome cookie export was unavailable, so yt-dlp will fall back to direct browser cookies. [WinError 10061] No connection could be made because the target machine actively refused it",
+      "timestamp": "2026-04-11T14:35:04Z"
+    },
+    {
+      "id": "63888-221",
+      "kind": "info",
+      "message": "Falling back to direct cookies from the Guided Chrome profile so yt-dlp can access signed-in YouTube playback.",
+      "timestamp": "2026-04-11T14:35:04Z"
+    },
+    {
+      "id": "63888-221",
+      "kind": "info",
+      "message": "Starting yt-dlp for 1 item(s).",
+      "timestamp": "2026-04-11T14:35:04Z"
+    },
+    {
+      "id": "63888-221",
+      "kind": "info",
+      "message": "Extracting cookies from chrome",
+      "timestamp": "2026-04-11T14:35:04Z"
+    },
+    {
+      "id": "63888-221",
+      "kind": "info",
+      "message": "Extracted 173 cookies from chrome",
+      "timestamp": "2026-04-11T14:35:05Z"
+    },
+    {
+      "id": "63888-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=pJhmLe1-VTg",
+      "timestamp": "2026-04-11T14:35:05Z"
+    },
+    {
+      "id": "63888-221",
+      "kind": "info",
+      "message": "[youtube] pJhmLe1-VTg: Downloading webpage",
+      "timestamp": "2026-04-11T14:35:05Z"
+    },
+    {
+      "id": "63888-221",
+      "kind": "info",
+      "message": "[youtube] pJhmLe1-VTg: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T14:35:07Z"
+    },
+    {
+      "id": "63888-221",
+      "kind": "info",
+      "message": "[youtube] pJhmLe1-VTg: Downloading player 8a6e7bc4-main",
+      "timestamp": "2026-04-11T14:35:07Z"
+    },
+    {
+      "id": "63888-221",
+      "kind": "info",
+      "message": "[youtube] [jsc:node] Solving JS challenges using node",
+      "timestamp": "2026-04-11T14:35:08Z"
+    },
+    {
+      "id": "63888-221",
+      "kind": "info",
+      "message": "[youtube] [jsc] Remote component challenge solver script (node) was skipped. It may be required to solve JS challenges. You can enable the download with  --remote-components ejs:github  (recommended). For more information and alternatives, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T14:35:08Z"
+    },
+    {
+      "id": "63888-221",
+      "kind": "info",
+      "message": "[youtube] pJhmLe1-VTg: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T14:35:08Z"
+    },
+    {
+      "id": "63888-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T14:35:08Z"
+    },
+    {
+      "id": "63888-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] pJhmLe1-VTg: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T14:35:08Z"
+    },
+    {
+      "id": "63888-221",
+      "kind": "error",
+      "message": "yt-dlp exited with code 1.",
+      "timestamp": "2026-04-11T14:35:08Z"
+    },
+    {
+      "id": "58736-221",
+      "kind": "info",
+      "message": "Starting a direct-link download for 1 URL(s).",
+      "timestamp": "2026-04-11T14:45:08Z"
+    },
+    {
+      "id": "58736-221",
+      "kind": "info",
+      "message": "Guided Chrome cookie export was unavailable, so yt-dlp will fall back to direct browser cookies. [WinError 10061] No connection could be made because the target machine actively refused it",
+      "timestamp": "2026-04-11T14:45:10Z"
+    },
+    {
+      "id": "58736-221",
+      "kind": "info",
+      "message": "Falling back to direct cookies from the Guided Chrome profile so yt-dlp can access signed-in YouTube playback.",
+      "timestamp": "2026-04-11T14:45:10Z"
+    },
+    {
+      "id": "58736-221",
+      "kind": "info",
+      "message": "Starting yt-dlp for 1 item(s).",
+      "timestamp": "2026-04-11T14:45:10Z"
+    },
+    {
+      "id": "58736-221",
+      "kind": "info",
+      "message": "Extracting cookies from chrome",
+      "timestamp": "2026-04-11T14:45:10Z"
+    },
+    {
+      "id": "58736-221",
+      "kind": "info",
+      "message": "Extracted 173 cookies from chrome",
+      "timestamp": "2026-04-11T14:45:11Z"
+    },
+    {
+      "id": "58736-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=pJhmLe1-VTg",
+      "timestamp": "2026-04-11T14:45:11Z"
+    },
+    {
+      "id": "58736-221",
+      "kind": "info",
+      "message": "[youtube] pJhmLe1-VTg: Downloading webpage",
+      "timestamp": "2026-04-11T14:45:11Z"
+    },
+    {
+      "id": "58736-221",
+      "kind": "info",
+      "message": "[youtube] pJhmLe1-VTg: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T14:45:13Z"
+    },
+    {
+      "id": "58736-221",
+      "kind": "info",
+      "message": "[youtube] pJhmLe1-VTg: Downloading player 8a6e7bc4-main",
+      "timestamp": "2026-04-11T14:45:13Z"
+    },
+    {
+      "id": "58736-221",
+      "kind": "info",
+      "message": "[youtube] [jsc:node] Solving JS challenges using node",
+      "timestamp": "2026-04-11T14:45:13Z"
+    },
+    {
+      "id": "58736-221",
+      "kind": "info",
+      "message": "[youtube] [jsc] Remote component challenge solver script (node) was skipped. It may be required to solve JS challenges. You can enable the download with  --remote-components ejs:github  (recommended). For more information and alternatives, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T14:45:13Z"
+    },
+    {
+      "id": "58736-221",
+      "kind": "info",
+      "message": "[youtube] pJhmLe1-VTg: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T14:45:13Z"
+    },
+    {
+      "id": "58736-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T14:45:14Z"
+    },
+    {
+      "id": "58736-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] pJhmLe1-VTg: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T14:45:14Z"
+    },
+    {
+      "id": "58736-221",
+      "kind": "error",
+      "message": "yt-dlp exited with code 1.",
+      "timestamp": "2026-04-11T14:45:14Z"
+    },
+    {
+      "id": "63004-221",
+      "kind": "info",
+      "message": "Starting a direct-link download for 1 URL(s).",
+      "timestamp": "2026-04-11T14:50:57Z"
+    },
+    {
+      "id": "63004-221",
+      "kind": "info",
+      "message": "Guided Chrome cookie export was unavailable, so yt-dlp will fall back to direct browser cookies. [WinError 10061] No connection could be made because the target machine actively refused it",
+      "timestamp": "2026-04-11T14:50:59Z"
+    },
+    {
+      "id": "63004-221",
+      "kind": "info",
+      "message": "Falling back to direct cookies from the Guided Chrome profile so yt-dlp can access signed-in YouTube playback.",
+      "timestamp": "2026-04-11T14:50:59Z"
+    },
+    {
+      "id": "63004-221",
+      "kind": "info",
+      "message": "Starting yt-dlp for 1 item(s).",
+      "timestamp": "2026-04-11T14:50:59Z"
+    },
+    {
+      "id": "63004-221",
+      "kind": "info",
+      "message": "Extracting cookies from chrome",
+      "timestamp": "2026-04-11T14:50:59Z"
+    },
+    {
+      "id": "63004-221",
+      "kind": "info",
+      "message": "Extracted 173 cookies from chrome",
+      "timestamp": "2026-04-11T14:51:00Z"
+    },
+    {
+      "id": "63004-221",
+      "kind": "info",
+      "message": "[youtube] Extracting URL: https://www.youtube.com/watch?v=pJhmLe1-VTg",
+      "timestamp": "2026-04-11T14:51:00Z"
+    },
+    {
+      "id": "63004-221",
+      "kind": "info",
+      "message": "[youtube] pJhmLe1-VTg: Downloading webpage",
+      "timestamp": "2026-04-11T14:51:00Z"
+    },
+    {
+      "id": "63004-221",
+      "kind": "info",
+      "message": "[youtube] pJhmLe1-VTg: Downloading tv downgraded player API JSON",
+      "timestamp": "2026-04-11T14:51:02Z"
+    },
+    {
+      "id": "63004-221",
+      "kind": "info",
+      "message": "[youtube] pJhmLe1-VTg: Downloading player 8a6e7bc4-main",
+      "timestamp": "2026-04-11T14:51:03Z"
+    },
+    {
+      "id": "63004-221",
+      "kind": "info",
+      "message": "[youtube] [jsc:node] Solving JS challenges using node",
+      "timestamp": "2026-04-11T14:51:03Z"
+    },
+    {
+      "id": "63004-221",
+      "kind": "info",
+      "message": "[youtube] [jsc] Remote component challenge solver script (node) was skipped. It may be required to solve JS challenges. You can enable the download with  --remote-components ejs:github  (recommended). For more information and alternatives, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T14:51:03Z"
+    },
+    {
+      "id": "63004-221",
+      "kind": "info",
+      "message": "[youtube] pJhmLe1-VTg: n challenge solving failed: Some formats may be missing. Ensure you have a supported JavaScript runtime and challenge solver script distribution installed. Review any warnings presented before this message. For more details, refer to  https://github.com/yt-dlp/yt-dlp/wiki/EJS",
+      "timestamp": "2026-04-11T14:51:03Z"
+    },
+    {
+      "id": "63004-221",
+      "kind": "info",
+      "message": "Only images are available for download. use --list-formats to see them",
+      "timestamp": "2026-04-11T14:51:03Z"
+    },
+    {
+      "id": "63004-221",
+      "kind": "error",
+      "message": "\u001b[0;31mERROR:\u001b[0m [youtube] pJhmLe1-VTg: Requested format is not available. Use --list-formats for a list of available formats",
+      "timestamp": "2026-04-11T14:51:03Z"
+    },
+    {
+      "id": "63004-221",
+      "kind": "error",
+      "message": "yt-dlp exited with code 1.",
+      "timestamp": "2026-04-11T14:51:03Z"
+    }
+  ]
+}
