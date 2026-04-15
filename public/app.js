@@ -2,6 +2,7 @@ const state = {
   status: null,
   folderHandle: null,
   folderName: '',
+  browserStepCompleted: false,
   sync: {
     running: false,
     completedRunId: null,
@@ -37,7 +38,18 @@ const elements = {
   latestDownloadSummary: document.querySelector('#latestDownloadSummary'),
   fileLinks: document.querySelector('#fileLinks'),
   logs: document.querySelector('#logs'),
+  stepBrowser: document.querySelector('#stepBrowser'),
+  stepFolder: document.querySelector('#stepFolder'),
+  stepDownload: document.querySelector('#stepDownload'),
 };
+
+const BROWSER_STEP_STORAGE_KEY = 'music-studio-browser-step-complete';
+
+try {
+  state.browserStepCompleted = window.localStorage.getItem(BROWSER_STEP_STORAGE_KEY) === '1';
+} catch {
+  state.browserStepCompleted = false;
+}
 
 function supportsLocalFolder() {
   return typeof window.showDirectoryPicker === 'function';
@@ -112,6 +124,15 @@ function getDownloadJob() {
 
 function getProgress() {
   return state.status?.progress || null;
+}
+
+function markBrowserStepCompleted() {
+  state.browserStepCompleted = true;
+  try {
+    window.localStorage.setItem(BROWSER_STEP_STORAGE_KEY, '1');
+  } catch {
+    // Ignore localStorage availability issues and keep the in-memory state.
+  }
 }
 
 async function fetchJson(url, options = {}) {
@@ -199,6 +220,22 @@ function renderDirectSummary() {
 function renderYouTubeSummary() {
   elements.youtubeSummary.textContent =
     'After you sign in in that browser tab, open your likes there and paste the video or playlist links you want into Music Studio.';
+}
+
+function setStepComplete(element, complete) {
+  if (!element) {
+    return;
+  }
+  element.classList.toggle('is-complete', complete);
+}
+
+function renderSteps() {
+  const folderReady = Boolean(state.folderHandle && state.folderName);
+  const downloadStarted = Boolean(getDownloadJob().last_started_at || getLatestDownload());
+
+  setStepComplete(elements.stepBrowser, state.browserStepCompleted);
+  setStepComplete(elements.stepFolder, folderReady);
+  setStepComplete(elements.stepDownload, downloadStarted);
 }
 
 function renderProgress() {
@@ -305,6 +342,7 @@ function syncActionButtons() {
 
 function renderAll() {
   renderHero();
+  renderSteps();
   renderAuth();
   renderFolder();
   renderDirectSummary();
@@ -447,7 +485,9 @@ async function invokeAction(url, body, button, idleLabel, busyLabel) {
 
 elements.authSignInBtn?.addEventListener('click', async () => {
   try {
+    markBrowserStepCompleted();
     openBrowserTab('https://accounts.google.com/ServiceLogin?service=youtube');
+    renderAll();
   } catch (error) {
     alert(error instanceof Error ? error.message : String(error));
   }
@@ -455,7 +495,9 @@ elements.authSignInBtn?.addEventListener('click', async () => {
 
 elements.authSignOutBtn?.addEventListener('click', async () => {
   try {
+    markBrowserStepCompleted();
     openBrowserTab('https://www.youtube.com/playlist?list=LL');
+    renderAll();
   } catch (error) {
     alert(error instanceof Error ? error.message : String(error));
   }
@@ -508,7 +550,9 @@ elements.directDownloadBtn?.addEventListener('click', async () => {
 
 elements.downloadLikedBtn?.addEventListener('click', async () => {
   try {
+    markBrowserStepCompleted();
     openBrowserTab('https://www.youtube.com/playlist?list=LL');
+    renderAll();
   } catch (error) {
     alert(error instanceof Error ? error.message : String(error));
   }

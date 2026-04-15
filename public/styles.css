@@ -7,6 +7,7 @@
   --shadow: 0 20px 60px rgba(9, 19, 24, 0.16);
   --sun: #d97a2b;
   --teal: #1f6966;
+  --ok: #1d7a56;
 }
 
 * {
@@ -200,6 +201,11 @@ textarea {
   border: 1px solid rgba(19, 33, 38, 0.08);
 }
 
+.step-item.is-complete {
+  border-color: rgba(29, 122, 86, 0.3);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.68), rgba(226, 244, 236, 0.88));
+}
+
 .step-index {
   display: inline-flex;
   align-items: center;
@@ -210,6 +216,50 @@ textarea {
   background: rgba(19, 33, 38, 0.08);
   font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
   font-size: 0.92rem;
+}
+
+.step-item.is-complete .step-index {
+  background: rgba(29, 122, 86, 0.14);
+  color: var(--ok);
+}
+
+.step-copy {
+  min-width: 0;
+}
+
+.step-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.step-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(19, 33, 38, 0.12);
+  background: rgba(19, 33, 38, 0.04);
+  color: transparent;
+  flex: 0 0 auto;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.step-item.is-complete .step-check {
+  border-color: rgba(29, 122, 86, 0.42);
+  background: var(--ok);
+  color: #f7fff9;
+  transform: scale(1.03);
+}
+
+.step-item.is-complete .step-check::before {
+  content: "\2713";
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+  font-size: 0.95rem;
+  line-height: 1;
 }
 
 .steps h3 {
