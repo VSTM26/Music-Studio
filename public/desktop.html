@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <title>Music Studio App</title>
+    <link rel="stylesheet" href="/desktop.css">
+  </head>
+  <body>
+    <div class="page-shell">
+      <div class="ambient ambient-left"></div>
+      <div class="ambient ambient-right"></div>
+
+      <header class="hero panel">
+        <div class="hero-copy">
+          <p class="eyebrow">Desktop App</p>
+          <h1>Use your own browser session. Save everything locally.</h1>
+          <p class="lede">
+            Music Studio now runs as a desktop app for Windows, macOS, and Linux.
+            Sign into YouTube in your own browser, import that browser session,
+            then download links or your liked videos straight into a folder you choose.
+          </p>
+        </div>
+        <div class="hero-stats">
+          <article class="stat-chip">
+            <span class="stat-label">Browser Session</span>
+            <strong id="sessionHeroStatus">Checking...</strong>
+          </article>
+          <article class="stat-chip">
+            <span class="stat-label">Downloader</span>
+            <strong id="toolHeroStatus">Checking...</strong>
+          </article>
+          <article class="stat-chip">
+            <span class="stat-label">Latest Job</span>
+            <strong id="jobHeroStatus">Waiting...</strong>
+          </article>
+        </div>
+      </header>
+
+      <main class="dashboard">
+        <section class="panel steps-card">
+          <div class="section-heading">
+            <p class="eyebrow">How It Works</p>
+            <h2>Three simple steps</h2>
+          </div>
+          <ol class="steps">
+            <li id="stepBrowser" class="step-item">
+              <span class="step-index">01</span>
+              <div class="step-copy">
+                <div class="step-title-row">
+                  <h3>Connect YouTube</h3>
+                  <span class="step-check" aria-hidden="true"></span>
+                </div>
+                <p>Open YouTube in your normal browser, sign in there, then import that session into Music Studio.</p>
+              </div>
+            </li>
+            <li id="stepFolder" class="step-item">
+              <span class="step-index">02</span>
+              <div class="step-copy">
+                <div class="step-title-row">
+                  <h3>Choose a local folder</h3>
+                  <span class="step-check" aria-hidden="true"></span>
+                </div>
+                <p>Pick the folder on your machine where finished files should land.</p>
+              </div>
+            </li>
+            <li id="stepDownload" class="step-item">
+              <span class="step-index">03</span>
+              <div class="step-copy">
+                <div class="step-title-row">
+                  <h3>Start the download</h3>
+                  <span class="step-check" aria-hidden="true"></span>
+                </div>
+                <p>Paste links or pull your likes. Music Studio downloads and saves what it finishes locally.</p>
+              </div>
+            </li>
+          </ol>
+        </section>
+
+        <section class="panel auth-card">
+          <div class="section-heading">
+            <p class="eyebrow">Browser Auth</p>
+            <h2>Import your session</h2>
+          </div>
+          <p id="authStatusText" class="body-copy">Open YouTube in your normal browser, sign in there, then import the current browser session here.</p>
+          <label class="field">
+            <span class="field-label">Browser to import from</span>
+            <select id="browserSelect" class="field-input">
+              <option value="auto">Auto detect</option>
+              <option value="chrome">Chrome</option>
+              <option value="edge">Edge</option>
+              <option value="brave">Brave</option>
+              <option value="chromium">Chromium</option>
+              <option value="firefox">Firefox</option>
+              <option value="opera">Opera</option>
+              <option value="vivaldi">Vivaldi</option>
+              <option value="safari">Safari</option>
+            </select>
+          </label>
+          <div class="button-row">
+            <button id="openSignInBtn" class="action action-primary">Open YouTube Sign-In</button>
+            <button id="syncSessionBtn" class="action action-secondary">Use Current Browser Session</button>
+            <button id="clearSessionBtn" class="action action-ghost">Clear Imported Session</button>
+          </div>
+        </section>
+
+        <section class="panel folder-card">
+          <div class="section-heading">
+            <p class="eyebrow">Save Location</p>
+            <h2>Local folder</h2>
+          </div>
+          <p id="folderStatus" class="body-copy">No local folder chosen yet.</p>
+          <p id="folderDetail" class="subtle-note">
+            Music Studio will copy finished files into the folder you pick here after each job.
+          </p>
+          <div class="button-row">
+            <button id="chooseFolderBtn" class="action action-secondary">Choose Local Folder</button>
+            <button id="saveLatestBtn" class="action action-ghost">Save Latest Files Now</button>
+          </div>
+        </section>
+
+        <section class="panel links-card">
+          <div class="section-heading">
+            <p class="eyebrow">Links</p>
+            <h2>Download pasted URLs</h2>
+          </div>
+          <p class="body-copy">
+            Paste one or more supported URLs. If you already imported a browser session, Music Studio will reuse it automatically for protected YouTube links.
+          </p>
+          <textarea id="directUrls" class="direct-textarea" placeholder="Paste one or more URLs here&#10;https://www.youtube.com/watch?v=...&#10;https://music.youtube.com/watch?v=..."></textarea>
+          <label class="toggle">
+            <input id="directExtractAudio" type="checkbox">
+            <span>Extract MP3 audio with ffmpeg after download</span>
+          </label>
+          <p id="directSummary" class="selection-summary">Paste one or more URLs to begin.</p>
+          <div class="button-row">
+            <button id="directDownloadBtn" class="action action-primary">Download Pasted Links</button>
+          </div>
+        </section>
+
+        <section class="panel youtube-card">
+          <div class="section-heading">
+            <p class="eyebrow">YouTube</p>
+            <h2>Pull from your likes</h2>
+          </div>
+          <p class="body-copy">
+            This uses the imported browser session and downloads the real <code>LL</code> likes playlist with <code>yt-dlp</code> locally.
+          </p>
+          <p id="youtubeSummary" class="selection-summary">Import your browser session first so Music Studio can read your likes.</p>
+          <div class="button-row">
+            <button id="openLikesBtn" class="action action-ghost">Open My YouTube Likes</button>
+            <button id="downloadLikedBtn" class="action action-secondary">Download My Likes</button>
+          </div>
+        </section>
+
+        <section class="panel progress-card">
+          <div class="section-heading">
+            <p class="eyebrow">Progress</p>
+            <h2>Live job status</h2>
+          </div>
+          <div class="progress-panel">
+            <div class="progress-head">
+              <div>
+                <p class="eyebrow">Downloader Progress</p>
+                <strong id="progressLabel">Ready</strong>
+              </div>
+              <span id="progressValue" class="progress-value">Idle</span>
+            </div>
+            <div class="progress-track">
+              <div id="progressFill" class="progress-fill"></div>
+            </div>
+            <p id="progressDetail" class="progress-detail">Music Studio is waiting for the next job.</p>
+          </div>
+          <div class="sync-panel">
+            <p class="eyebrow">Local Save</p>
+            <strong id="syncStatus">Choose a local folder for finished files.</strong>
+            <p id="syncDetail" class="progress-detail">When a job finishes, Music Studio can copy those files into your chosen folder automatically.</p>
+          </div>
+        </section>
+
+        <section class="panel files-card">
+          <div class="section-heading">
+            <p class="eyebrow">Files</p>
+            <h2>Latest finished job</h2>
+          </div>
+          <p id="latestDownloadSummary" class="body-copy">No completed job yet.</p>
+          <div id="fileLinks" class="file-links empty-state">Finished files will appear here.</div>
+        </section>
+
+        <section class="panel logs-card">
+          <div class="section-heading">
+            <p class="eyebrow">Process Log</p>
+            <h2>Live output</h2>
+          </div>
+          <div id="logs" class="logs empty-state">Waiting for activity...</div>
+        </section>
+      </main>
+    </div>
+
+    <script type="module" src="/desktop.js"></script>
+  </body>
+</html>

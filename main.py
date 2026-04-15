@@ -32,7 +32,7 @@ def ensure_dependencies() -> None:
 
 ensure_dependencies()
 
-from liked_music_studio.server import main
+from liked_music_studio.desktop_app import main
 
 
 if __name__ == "__main__":

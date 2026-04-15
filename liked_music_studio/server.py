@@ -20,16 +20,19 @@ from urllib.parse import unquote, urlparse
 
 from . import APP_NAME, APP_VERSION
 from .downloader import download_urls, get_tool_status
-from . import oauth, youtube
+from . import oauth
+from .paths import PUBLIC_DIR, RUNTIME_DIR
 
-
-BASE_DIR = Path(__file__).resolve().parents[1]
-PUBLIC_DIR = BASE_DIR / "public"
-RUNTIME_DIR = BASE_DIR / "runtime"
 SESSIONS_DIR = RUNTIME_DIR / "sessions"
-APP_HOST = os.environ.get("APP_HOST", "0.0.0.0")
+APP_HOST = os.environ.get("APP_HOST", "127.0.0.1")
 DEFAULT_PORT = int(os.environ.get("PORT", "4173"))
 SESSION_COOKIE_NAME = "music_studio_session"
+OPEN_BROWSER_ON_START = os.environ.get("OPEN_BROWSER", "").strip() == "1"
+
+try:
+    import browser_cookie3  # type: ignore
+except Exception:
+    browser_cookie3 = None
 
 
 def _utc_now() -> str:
@@ -38,6 +41,80 @@ def _utc_now() -> str:
 
 def _quote_path_segment(value: str) -> str:
     return urllib.parse.quote(value.replace("\\", "/"), safe="/-._~")
+
+
+def _format_cookie_line(cookie: dict[str, Any]) -> str | None:
+    domain = str(cookie.get("domain") or "").strip()
+    name = str(cookie.get("name") or "").strip()
+    value = str(cookie.get("value") or "")
+    path = str(cookie.get("path") or "/").strip() or "/"
+    if not domain or not name:
+        return None
+
+    secure = "TRUE" if bool(cookie.get("secure")) else "FALSE"
+    include_subdomains = "FALSE"
+    if domain.startswith("."):
+        include_subdomains = "TRUE"
+    elif not bool(cookie.get("hostOnly")):
+        domain = f".{domain}"
+        include_subdomains = "TRUE"
+
+    expires = 0
+    raw_expiration = cookie.get("expirationDate")
+    if isinstance(raw_expiration, (int, float)) and raw_expiration > 0:
+        expires = int(raw_expiration)
+
+    return "\t".join([domain, include_subdomains, path, secure, str(expires), name, value])
+
+
+YOUTUBE_COOKIE_HOST_MARKERS = (
+    "youtube.com",
+    "music.youtube.com",
+    "google.com",
+    "accounts.google.com",
+)
+
+
+def _cookie_matches_youtube_hosts(domain: str) -> bool:
+    cleaned = domain.lstrip(".").lower()
+    return any(cleaned == marker or cleaned.endswith(f".{marker}") for marker in YOUTUBE_COOKIE_HOST_MARKERS)
+
+
+def _cookiejar_cookie_to_export(cookie: Any) -> dict[str, Any]:
+    expires = getattr(cookie, "expires", None)
+    return {
+        "domain": getattr(cookie, "domain", ""),
+        "hostOnly": not bool(getattr(cookie, "domain_initial_dot", False)),
+        "name": getattr(cookie, "name", ""),
+        "path": getattr(cookie, "path", "/"),
+        "secure": bool(getattr(cookie, "secure", False)),
+        "value": getattr(cookie, "value", ""),
+        "expirationDate": float(expires) if isinstance(expires, (int, float)) else None,
+    }
+
+
+def _browser_cookie_loaders() -> dict[str, Any]:
+    if browser_cookie3 is None:
+        return {}
+
+    names = {
+        "auto": "load",
+        "chrome": "chrome",
+        "chromium": "chromium",
+        "edge": "edge",
+        "brave": "brave",
+        "vivaldi": "vivaldi",
+        "opera": "opera",
+        "firefox": "firefox",
+        "librewolf": "librewolf",
+        "safari": "safari",
+    }
+    loaders: dict[str, Any] = {}
+    for public_name, attr_name in names.items():
+        loader = getattr(browser_cookie3, attr_name, None)
+        if callable(loader):
+            loaders[public_name] = loader
+    return loaders
 
 
 @dataclass
@@ -95,6 +172,203 @@ class StudioState:
             if len(session.logs) > 220:
                 session.logs = session.logs[-220:]
 
+    def _browser_session_dir(self, session: SessionState) -> Path:
+        return session.root_dir / "browser-session"
+
+    def _browser_cookie_file(self, session: SessionState) -> Path:
+        return self._browser_session_dir(session) / "youtube-cookies.txt"
+
+    def _browser_session_metadata_file(self, session: SessionState) -> Path:
+        return self._browser_session_dir(session) / "session.json"
+
+    def _load_browser_session_metadata(self, session: SessionState) -> dict[str, Any]:
+        metadata_path = self._browser_session_metadata_file(session)
+        if not metadata_path.exists():
+            return {}
+        try:
+            payload = json.loads(metadata_path.read_text(encoding="utf-8"))
+            if isinstance(payload, dict):
+                return payload
+        except Exception:
+            return {}
+        return {}
+
+    def _build_browser_session_payload(self, session: SessionState) -> dict[str, Any]:
+        metadata = self._load_browser_session_metadata(session)
+        cookie_file = self._browser_cookie_file(session)
+        cookie_count = metadata.get("cookieCount")
+        return {
+            "imported": cookie_file.exists(),
+            "cookieCount": int(cookie_count) if isinstance(cookie_count, int) else 0,
+            "updatedAt": str(metadata.get("updatedAt") or "") or None,
+            "userAgent": str(metadata.get("userAgent") or "") or None,
+            "source": str(metadata.get("source") or "") or None,
+        }
+
+    def import_browser_session(
+        self,
+        session_id: str,
+        *,
+        cookies: list[dict[str, Any]],
+        user_agent: str | None = None,
+        accept_language: str | None = None,
+        source: str = "chrome-extension",
+    ) -> dict[str, Any]:
+        session = self.get_session(session_id)
+        if not cookies:
+            raise RuntimeError("No browser cookies were provided.")
+
+        cookie_lines = ["# Netscape HTTP Cookie File", "# This file is generated by Music Studio."]
+        seen_keys: set[tuple[str, str, str]] = set()
+        kept_count = 0
+        for cookie in cookies:
+            if not isinstance(cookie, dict):
+                continue
+            domain = str(cookie.get("domain") or "").strip()
+            name = str(cookie.get("name") or "").strip()
+            path = str(cookie.get("path") or "/").strip() or "/"
+            if not domain or not name:
+                continue
+            dedupe_key = (domain, path, name)
+            if dedupe_key in seen_keys:
+                continue
+            seen_keys.add(dedupe_key)
+            cookie_line = _format_cookie_line(cookie)
+            if not cookie_line:
+                continue
+            cookie_lines.append(cookie_line)
+            kept_count += 1
+
+        if kept_count <= 0:
+            raise RuntimeError("Music Studio could not build a valid cookie jar from the browser session.")
+
+        session_dir = self._browser_session_dir(session)
+        session_dir.mkdir(parents=True, exist_ok=True)
+        cookie_file = self._browser_cookie_file(session)
+        cookie_file.write_text("\n".join(cookie_lines) + "\n", encoding="utf-8")
+
+        metadata = {
+            "updatedAt": _utc_now(),
+            "cookieCount": kept_count,
+            "userAgent": str(user_agent or "").strip() or None,
+            "acceptLanguage": str(accept_language or "").strip() or None,
+            "source": source,
+        }
+        self._browser_session_metadata_file(session).write_text(
+            json.dumps(metadata, indent=2),
+            encoding="utf-8",
+        )
+        self.add_log(session_id, f"Imported {kept_count} browser cookie(s) from the local browser.", "success")
+        return self._build_browser_session_payload(session)
+
+    def import_browser_session_from_browser(
+        self,
+        session_id: str,
+        *,
+        browser_name: str,
+    ) -> dict[str, Any]:
+        loaders = _browser_cookie_loaders()
+        if not loaders:
+            raise RuntimeError(
+                "Browser cookie import is unavailable because browser-cookie3 is not installed."
+            )
+
+        normalized_name = str(browser_name or "auto").strip().lower() or "auto"
+        loader = loaders.get(normalized_name)
+        if not loader:
+            supported = ", ".join(sorted(loaders))
+            raise RuntimeError(f"Unsupported browser `{browser_name}`. Supported options: {supported}.")
+
+        try:
+            cookie_jar = loader()
+        except Exception as error:
+            raise RuntimeError(f"Could not read cookies from {normalized_name}: {error}") from error
+
+        cookies: list[dict[str, Any]] = []
+        for cookie in cookie_jar:
+            domain = str(getattr(cookie, "domain", "") or "").strip()
+            if not _cookie_matches_youtube_hosts(domain):
+                continue
+            cookies.append(_cookiejar_cookie_to_export(cookie))
+
+        if not cookies:
+            raise RuntimeError(
+                f"No YouTube or Google cookies were found in the {normalized_name} browser profile."
+            )
+
+        source_name = f"browser-cookie3:{normalized_name}"
+        return self.import_browser_session(
+            session_id,
+            cookies=cookies,
+            source=source_name,
+        )
+
+    def clear_browser_session(self, session_id: str) -> None:
+        session = self.get_session(session_id)
+        shutil.rmtree(self._browser_session_dir(session), ignore_errors=True)
+        self.add_log(session_id, "Cleared the imported browser session.", "info")
+
+    def _save_downloads_to_folder(self, session_id: str, downloads_dir: Path, folder_path: str) -> dict[str, Any]:
+        target_root = Path(folder_path).expanduser()
+        if not target_root.is_absolute():
+            target_root = target_root.resolve()
+        target_root.mkdir(parents=True, exist_ok=True)
+
+        saved_count = 0
+        for source_path in sorted(downloads_dir.rglob("*")):
+            if not source_path.is_file():
+                continue
+            relative_path = source_path.relative_to(downloads_dir)
+            destination = target_root / relative_path
+            destination.parent.mkdir(parents=True, exist_ok=True)
+            shutil.copy2(source_path, destination)
+            saved_count += 1
+
+        metadata = {
+            "folderPath": str(target_root),
+            "savedAt": _utc_now(),
+            "savedFileCount": saved_count,
+        }
+        self.add_log(session_id, f"Saved {saved_count} file(s) into {target_root}.", "success")
+        return metadata
+
+    def save_latest_download_to_folder(self, session_id: str, folder_path: str) -> dict[str, Any]:
+        session = self.get_session(session_id)
+        manifest = self._load_latest_download_manifest(session)
+        if not manifest:
+            raise RuntimeError("No completed download is available yet.")
+
+        run_id = str(manifest.get("runId") or "").strip()
+        if not run_id:
+            raise RuntimeError("The latest download manifest is missing a run id.")
+
+        downloads_dir = self._job_root(session, run_id) / "downloads"
+        if not downloads_dir.exists():
+            raise RuntimeError("The latest download files are no longer available locally.")
+
+        manifest["localSave"] = self._save_downloads_to_folder(session_id, downloads_dir, folder_path)
+        manifest_path = session.root_dir / "latest-download.json"
+        manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
+        return manifest
+
+    def _resolve_browser_download_context(
+        self,
+        session: SessionState,
+    ) -> tuple[Path | None, dict[str, str] | None]:
+        metadata = self._load_browser_session_metadata(session)
+        headers: dict[str, str] = {}
+
+        user_agent = str(metadata.get("userAgent") or "").strip()
+        if user_agent:
+            headers["User-Agent"] = user_agent
+
+        accept_language = str(metadata.get("acceptLanguage") or "").strip()
+        if accept_language:
+            headers["Accept-Language"] = accept_language
+
+        cookie_file = self._browser_cookie_file(session)
+        return (cookie_file if cookie_file.exists() else None, headers or None)
+
     def _load_latest_download_manifest(self, session: SessionState) -> dict[str, Any] | None:
         manifest_path = session.root_dir / "latest-download.json"
         if not manifest_path.exists():
@@ -125,7 +399,7 @@ class StudioState:
             "kind": None,
             "running": False,
             "label": "Ready",
-            "detail": "Paste links or connect YouTube to start a download.",
+            "detail": "Paste links or import your browser session to start a download.",
             "percent": None,
         }
 
@@ -136,7 +410,9 @@ class StudioState:
             logs = list(session.logs)
 
         latest_download = self._load_latest_download_manifest(session)
+        browser_session = self._build_browser_session_payload(session)
         return {
+            "sessionId": session_id,
             "app": {
                 "name": APP_NAME,
                 "version": APP_VERSION,
@@ -145,6 +421,7 @@ class StudioState:
                 "configured": oauth.is_configured(),
                 "authenticated": oauth.is_authenticated(session.root_dir),
             },
+            "browserSession": browser_session,
             "tools": get_tool_status(),
             "download": download_state.__dict__,
             "progress": self._build_live_progress(download_state),
@@ -198,7 +475,13 @@ class StudioState:
             session.download.active_run_id = run_id
         return run_id
 
-    def start_direct_download(self, session_id: str, urls: list[str], extract_audio: bool) -> None:
+    def start_direct_download(
+        self,
+        session_id: str,
+        urls: list[str],
+        extract_audio: bool,
+        save_folder_path: str | None = None,
+    ) -> None:
         cleaned_urls = [str(url).strip() for url in urls if str(url).strip()]
         if not cleaned_urls:
             raise RuntimeError("Paste at least one URL before starting a download.")
@@ -212,25 +495,33 @@ class StudioState:
         )
         threading.Thread(
             target=self._run_direct_download_job,
-            args=(session_id, run_id, cleaned_urls, extract_audio),
+            args=(session_id, run_id, cleaned_urls, extract_audio, save_folder_path),
             daemon=True,
         ).start()
 
-    def start_liked_videos_download(self, session_id: str, extract_audio: bool) -> None:
+    def start_liked_videos_download(
+        self,
+        session_id: str,
+        extract_audio: bool,
+        save_folder_path: str | None = None,
+    ) -> None:
         session = self.get_session(session_id)
-        if not oauth.is_authenticated(session.root_dir):
-            raise RuntimeError("Sign in with Google first so Music Studio can read your YouTube likes.")
+        cookie_file, _ = self._resolve_browser_download_context(session)
+        if not cookie_file:
+            raise RuntimeError(
+                "Import your signed-in YouTube browser session first."
+            )
 
         run_id = self._set_download_job_started(
             session_id,
             mode="liked-audio" if extract_audio else "liked-media",
-            requested_count=None,
-            progress_label="Connecting to your YouTube account",
-            progress_detail="Reading your liked videos with Google OAuth.",
+            requested_count=1,
+            progress_label="Preparing your YouTube likes",
+            progress_detail="Using your imported browser session to read the likes playlist.",
         )
         threading.Thread(
             target=self._run_liked_videos_download_job,
-            args=(session_id, run_id, extract_audio),
+            args=(session_id, run_id, extract_audio, save_folder_path),
             daemon=True,
         ).start()
 
@@ -258,6 +549,7 @@ class StudioState:
         requested_count: int,
         extract_audio: bool,
         downloads_dir: Path,
+        local_save: dict[str, Any] | None = None,
     ) -> dict[str, Any]:
         session = self.get_session(session_id)
         files: list[dict[str, Any]] = []
@@ -282,6 +574,7 @@ class StudioState:
             "extractAudio": extract_audio,
             "completedFileCount": len(files),
             "files": files,
+            "localSave": local_save,
         }
         manifest_path = session.root_dir / "latest-download.json"
         manifest_path.write_text(json.dumps(manifest, indent=2), encoding="utf-8")
@@ -297,6 +590,7 @@ class StudioState:
         requested_count: int,
         extract_audio: bool,
         downloads_dir: Path,
+        local_save: dict[str, Any] | None = None,
     ) -> None:
         manifest = self._write_latest_download_manifest(
             session_id,
@@ -305,6 +599,7 @@ class StudioState:
             requested_count=requested_count,
             extract_audio=extract_audio,
             downloads_dir=downloads_dir,
+            local_save=local_save,
         )
         session = self.get_session(session_id)
         with self.lock:
@@ -335,11 +630,15 @@ class StudioState:
         run_id: str,
         urls: list[str],
         extract_audio: bool,
+        save_folder_path: str | None,
     ) -> None:
         session = self.get_session(session_id)
         self.add_log(session_id, f"Starting a link download for {len(urls)} URL(s).", "info")
         try:
             job_root = self._job_root(session, run_id)
+            cookie_file, http_headers = self._resolve_browser_download_context(session)
+            if cookie_file:
+                self.add_log(session_id, "Using the imported browser session for this download.", "info")
             downloads_dir = download_urls(
                 urls,
                 job_root,
@@ -351,6 +650,13 @@ class StudioState:
                     detail=str(payload.get("detail") or "") or None,
                     percent=payload.get("percent") if isinstance(payload.get("percent"), (int, float)) else None,
                 ),
+                http_headers=http_headers,
+                cookie_file=cookie_file,
+            )
+            local_save = (
+                self._save_downloads_to_folder(session_id, downloads_dir, save_folder_path)
+                if save_folder_path
+                else None
             )
             self._finish_download_job_success(
                 session_id,
@@ -359,6 +665,7 @@ class StudioState:
                 requested_count=len(urls),
                 extract_audio=extract_audio,
                 downloads_dir=downloads_dir,
+                local_save=local_save,
             )
             self.add_log(session_id, "Finished preparing files for local download.", "success")
         except Exception as error:
@@ -370,65 +677,46 @@ class StudioState:
         session_id: str,
         run_id: str,
         extract_audio: bool,
+        save_folder_path: str | None,
     ) -> None:
         session = self.get_session(session_id)
-        self.add_log(session_id, "Reading your YouTube liked videos.", "info")
+        self.add_log(session_id, "Reading your YouTube liked videos from the signed-in browser session.", "info")
         try:
-            urls: list[str] = []
-
-            def library_progress(payload: dict[str, Any]) -> None:
-                percent = payload.get("percent")
-                scaled_percent = None
-                if isinstance(percent, (int, float)):
-                    scaled_percent = round(min(40.0, float(percent) * 0.4), 1)
-                self._update_download_progress(
-                    session_id,
-                    label=str(payload.get("label") or "") or None,
-                    detail=str(payload.get("detail") or "") or None,
-                    percent=scaled_percent,
-                )
-
-            liked_videos = youtube.list_liked_videos(session.root_dir, progress=library_progress)
-            urls = [item["url"] for item in liked_videos if item.get("url")]
-            if not urls:
-                raise RuntimeError("No liked YouTube videos were available for this account.")
-
-            self.add_log(session_id, f"Found {len(urls)} liked video(s) in your YouTube account.", "success")
-            self._update_download_progress(
-                session_id,
-                label=f"Downloading {len(urls)} liked video(s)",
-                detail="yt-dlp is now preparing media files from your account list.",
-                percent=40.0,
-            )
-
             job_root = self._job_root(session, run_id)
+            cookie_file, http_headers = self._resolve_browser_download_context(session)
+            if not cookie_file:
+                raise RuntimeError("Import your YouTube browser session again and retry.")
 
             def download_progress(payload: dict[str, Any]) -> None:
-                percent = payload.get("percent")
-                scaled_percent = None
-                if isinstance(percent, (int, float)):
-                    scaled_percent = round(40.0 + (float(percent) * 0.6), 1)
                 self._update_download_progress(
                     session_id,
                     label=str(payload.get("label") or "") or None,
                     detail=str(payload.get("detail") or "") or None,
-                    percent=scaled_percent,
+                    percent=payload.get("percent") if isinstance(payload.get("percent"), (int, float)) else None,
                 )
 
             downloads_dir = download_urls(
-                urls,
+                ["https://www.youtube.com/playlist?list=LL"],
                 job_root,
                 extract_audio,
                 lambda message, kind="info": self.add_log(session_id, message, kind),
                 progress=download_progress,
+                http_headers=http_headers,
+                cookie_file=cookie_file,
+            )
+            local_save = (
+                self._save_downloads_to_folder(session_id, downloads_dir, save_folder_path)
+                if save_folder_path
+                else None
             )
             self._finish_download_job_success(
                 session_id,
                 run_id=run_id,
                 source_kind="youtube-liked-videos",
-                requested_count=len(urls),
+                requested_count=1,
                 extract_audio=extract_audio,
                 downloads_dir=downloads_dir,
+                local_save=local_save,
             )
             self.add_log(session_id, "Finished preparing files from your YouTube likes.", "success")
         except Exception as error:
@@ -458,9 +746,34 @@ class StudioHandler(BaseHTTPRequestHandler):
     def log_message(self, format: str, *args: Any) -> None:
         return
 
+    def do_OPTIONS(self) -> None:
+        self._ensure_session()
+        self.send_response(HTTPStatus.NO_CONTENT)
+        self._apply_common_headers()
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Music-Studio-Session")
+        self.send_header("Access-Control-Max-Age", "86400")
+        self.send_header("Content-Length", "0")
+        self.end_headers()
+
     def _ensure_session(self) -> str:
         if self.session_id:
             return self.session_id
+
+        header_session_id = str(self.headers.get("X-Music-Studio-Session") or "").strip()
+        if header_session_id:
+            self.session_id = header_session_id
+            self.state.get_session(header_session_id)
+            return header_session_id
+
+        query_session_id = str(
+            (urllib.parse.parse_qs(urlparse(self.path).query).get("music_studio_session") or [""])[0]
+        ).strip()
+        if query_session_id:
+            self.session_id = query_session_id
+            self.state.get_session(query_session_id)
+            return query_session_id
 
         cookie_header = self.headers.get("Cookie") or ""
         cookie = SimpleCookie()
@@ -487,6 +800,9 @@ class StudioHandler(BaseHTTPRequestHandler):
 
         if path == "/api/status":
             self._send_json(HTTPStatus.OK, self.state.build_status_payload(session_id))
+            return
+        if path == "/app":
+            self._serve_static("/desktop.html")
             return
         if path == "/api/auth/status":
             session = self.state.get_session(session_id)
@@ -556,6 +872,47 @@ class StudioHandler(BaseHTTPRequestHandler):
         path = urlparse(self.path).path
         body = self._read_json()
         try:
+            if path == "/api/browser-session":
+                raw_cookies = body.get("cookies") if isinstance(body, dict) else None
+                if not isinstance(raw_cookies, list):
+                    raise RuntimeError("cookies must be provided as an array.")
+                payload = self.state.import_browser_session(
+                    session_id,
+                    cookies=[item for item in raw_cookies if isinstance(item, dict)],
+                    user_agent=str(body.get("userAgent") or "") if isinstance(body, dict) else None,
+                    accept_language=str(body.get("acceptLanguage") or "") if isinstance(body, dict) else None,
+                    source=str(body.get("source") or "chrome-extension") if isinstance(body, dict) else "chrome-extension",
+                )
+                self._send_json(
+                    HTTPStatus.OK,
+                    {"ok": True, "message": "Browser session imported.", "browserSession": payload},
+                )
+                return
+            if path == "/api/browser-session/import":
+                browser_name = str(body.get("browserName") or "auto") if isinstance(body, dict) else "auto"
+                payload = self.state.import_browser_session_from_browser(
+                    session_id,
+                    browser_name=browser_name,
+                )
+                self._send_json(
+                    HTTPStatus.OK,
+                    {"ok": True, "message": "Browser session imported from the local browser.", "browserSession": payload},
+                )
+                return
+            if path == "/api/browser-session/clear":
+                self.state.clear_browser_session(session_id)
+                self._send_json(HTTPStatus.OK, {"ok": True, "message": "Browser session cleared."})
+                return
+            if path == "/api/latest-download/save":
+                folder_path = str(body.get("folderPath") or "").strip() if isinstance(body, dict) else ""
+                if not folder_path:
+                    raise RuntimeError("folderPath is required.")
+                manifest = self.state.save_latest_download_to_folder(session_id, folder_path)
+                self._send_json(
+                    HTTPStatus.OK,
+                    {"ok": True, "message": "Latest files saved into the chosen folder.", "latestDownload": manifest},
+                )
+                return
             if path == "/api/auth/logout":
                 session = self.state.get_session(session_id)
                 oauth.clear_oauth_token(session.root_dir)
@@ -570,12 +927,23 @@ class StudioHandler(BaseHTTPRequestHandler):
                 else:
                     raise RuntimeError("urls must be provided as a string or an array.")
                 extract_audio = bool(body.get("extractAudio")) if isinstance(body, dict) else False
-                self.state.start_direct_download(session_id, urls, extract_audio)
+                save_folder_path = str(body.get("saveFolderPath") or "").strip() if isinstance(body, dict) else ""
+                self.state.start_direct_download(
+                    session_id,
+                    urls,
+                    extract_audio,
+                    save_folder_path or None,
+                )
                 self._send_json(HTTPStatus.ACCEPTED, {"ok": True, "message": "Download job started."})
                 return
             if path == "/api/youtube/download-liked":
                 extract_audio = bool(body.get("extractAudio")) if isinstance(body, dict) else False
-                self.state.start_liked_videos_download(session_id, extract_audio)
+                save_folder_path = str(body.get("saveFolderPath") or "").strip() if isinstance(body, dict) else ""
+                self.state.start_liked_videos_download(
+                    session_id,
+                    extract_audio,
+                    save_folder_path or None,
+                )
                 self._send_json(
                     HTTPStatus.ACCEPTED,
                     {"ok": True, "message": "YouTube liked videos download started."},
@@ -604,6 +972,9 @@ class StudioHandler(BaseHTTPRequestHandler):
                 cookie_value += "; Secure"
             self.send_header("Set-Cookie", cookie_value)
             self._set_cookie = False
+        self.send_header("Access-Control-Allow-Origin", "*")
+        self.send_header("Access-Control-Allow-Headers", "Content-Type, X-Music-Studio-Session")
+        self.send_header("Access-Control-Allow-Methods", "GET, POST, OPTIONS")
 
     def _send_json(self, status: HTTPStatus, payload: dict[str, Any]) -> None:
         body = json.dumps(payload, indent=2).encode("utf-8")
@@ -716,27 +1087,34 @@ class StudioHandler(BaseHTTPRequestHandler):
 
 
 def _create_server(handler: Any) -> tuple[ThreadingHTTPServer, int]:
-    port_candidates = [DEFAULT_PORT] if "PORT" in os.environ else [*range(DEFAULT_PORT, DEFAULT_PORT + 25), 0]
-    last_error: OSError | None = None
+    try:
+        server = ThreadingHTTPServer((APP_HOST, DEFAULT_PORT), handler)
+        return server, int(server.server_address[1])
+    except OSError as error:
+        raise OSError(
+            f"Music Studio needs {APP_HOST}:{DEFAULT_PORT}. Close anything else using that port and try again."
+        ) from error
 
-    for port in port_candidates:
-        try:
-            server = ThreadingHTTPServer((APP_HOST, port), handler)
-            return server, int(server.server_address[1])
-        except OSError as error:
-            last_error = error
-            continue
 
-    assert last_error is not None
-    raise last_error
+def create_server_instance(state: StudioState | None = None) -> tuple[ThreadingHTTPServer, int, StudioState]:
+    resolved_state = state or StudioState()
+    handler = partial(StudioHandler, state=resolved_state)
+    server, actual_port = _create_server(handler)
+    return server, actual_port, resolved_state
+
+
+def start_server_thread(server: ThreadingHTTPServer) -> threading.Thread:
+    thread = threading.Thread(target=server.serve_forever, daemon=True)
+    thread.start()
+    return thread
 
 
 def main() -> None:
-    state = StudioState()
-    handler = partial(StudioHandler, state=state)
-    server, actual_port = _create_server(handler)
-    print(f"{APP_NAME} is running on port {actual_port}")
-    if os.environ.get("NO_OPEN_BROWSER") != "1" and APP_HOST in {"127.0.0.1", "localhost"}:
+    server, actual_port, _ = create_server_instance()
+    print(f"{APP_NAME} local helper is running at http://{APP_HOST}:{actual_port}")
+    print("Run the desktop app to open the native Music Studio window.")
+    print(f"Static app assets are loaded from: {PUBLIC_DIR}")
+    if OPEN_BROWSER_ON_START and APP_HOST in {"127.0.0.1", "localhost"}:
         try:
             webbrowser.open(f"http://{APP_HOST}:{actual_port}")
         except Exception:

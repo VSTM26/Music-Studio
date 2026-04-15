@@ -1,13 +1,14 @@
 :root {
-  --ink: #132126;
-  --paper: #f7f2e8;
-  --mist: #e9ddd0;
-  --panel: rgba(255, 251, 244, 0.82);
-  --line: rgba(19, 33, 38, 0.12);
-  --shadow: 0 20px 60px rgba(9, 19, 24, 0.16);
-  --sun: #d97a2b;
-  --teal: #1f6966;
-  --ok: #1d7a56;
+  --ink: #102028;
+  --muted: rgba(16, 32, 40, 0.72);
+  --paper: rgba(255, 250, 243, 0.9);
+  --line: rgba(16, 32, 40, 0.1);
+  --shadow: 0 28px 80px rgba(10, 20, 25, 0.14);
+  --orange: #d7641e;
+  --sand: #efe1cc;
+  --teal: #1f6b68;
+  --teal-deep: #163f46;
+  --lime: #d8f0cb;
 }
 
 * {
@@ -18,537 +19,398 @@ html,
 body {
   margin: 0;
   min-height: 100%;
-  background:
-    radial-gradient(circle at top left, rgba(217, 122, 43, 0.24), transparent 28%),
-    radial-gradient(circle at bottom right, rgba(31, 105, 102, 0.22), transparent 26%),
-    linear-gradient(180deg, #efe2d2 0%, #f8f3eb 58%, #f4ecdd 100%);
+}
+
+body {
   color: var(--ink);
   font-family: Georgia, "Times New Roman", serif;
+  background:
+    radial-gradient(circle at top left, rgba(215, 100, 30, 0.16), transparent 28%),
+    radial-gradient(circle at 85% 15%, rgba(31, 107, 104, 0.18), transparent 24%),
+    linear-gradient(180deg, #f1e4d1 0%, #f7f0e6 48%, #f5eee4 100%);
 }
 
-button,
-input,
-textarea {
-  font: inherit;
+a {
+  color: inherit;
+  text-decoration: none;
 }
 
-.page-shell {
+.site-shell {
   position: relative;
-  width: min(1240px, calc(100% - 32px));
+  width: min(1180px, calc(100% - 32px));
   margin: 0 auto;
-  padding: 36px 0 48px;
+  padding: 22px 0 54px;
 }
 
-.ambient {
+.glow {
   position: fixed;
-  width: 320px;
-  height: 320px;
+  width: 340px;
+  height: 340px;
   border-radius: 50%;
-  filter: blur(40px);
-  opacity: 0.5;
+  filter: blur(54px);
   pointer-events: none;
+  opacity: 0.42;
 }
 
-.ambient-left {
-  top: 100px;
+.glow-left {
   left: -120px;
-  background: rgba(217, 122, 43, 0.16);
+  top: 70px;
+  background: rgba(215, 100, 30, 0.18);
 }
 
-.ambient-right {
-  right: -80px;
-  bottom: 40px;
-  background: rgba(31, 105, 102, 0.16);
+.glow-right {
+  right: -120px;
+  bottom: 32px;
+  background: rgba(31, 107, 104, 0.2);
 }
 
-.panel {
+.topbar,
+.hero,
+.section,
+.cta-strip {
+  position: relative;
+  z-index: 1;
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 20px;
+  margin-bottom: 22px;
+}
+
+.brand {
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+}
+
+.brand-mark {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 52px;
+  height: 52px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, var(--teal-deep) 0%, var(--teal) 100%);
+  color: #f6fff9;
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+  font-size: 1.05rem;
+  letter-spacing: 0.08em;
+}
+
+.brand-copy {
+  display: grid;
+}
+
+.brand-copy strong,
+.hero h1,
+.section-heading h2,
+.step-card h3,
+.feature-card h3,
+.download-card strong,
+.cta-strip h2 {
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+}
+
+.brand-copy strong {
+  font-size: 1.08rem;
+}
+
+.brand-copy span {
+  color: var(--muted);
+  font-size: 0.9rem;
+}
+
+.topbar-links {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 18px;
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+  color: var(--muted);
+}
+
+.topbar-links a:hover {
+  color: var(--ink);
+}
+
+.hero,
+.section,
+.cta-strip {
   border: 1px solid var(--line);
-  border-radius: 28px;
-  background: var(--panel);
-  backdrop-filter: blur(18px);
+  border-radius: 30px;
+  background: var(--paper);
+  backdrop-filter: blur(20px);
   box-shadow: var(--shadow);
-  animation: rise 420ms ease both;
 }
 
 .hero {
   display: grid;
-  grid-template-columns: 1.3fr 0.9fr;
-  gap: 24px;
-  padding: 32px;
+  grid-template-columns: 1.3fr 0.92fr;
+  gap: 26px;
+  padding: 34px;
 }
 
-.hero-copy h1,
-.section-heading h2,
-.steps h3,
-.stat-chip strong {
+.eyebrow {
+  margin: 0 0 0.8rem;
   font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+  font-size: 0.76rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  color: rgba(16, 32, 40, 0.58);
 }
 
-.hero-copy h1 {
+.hero h1 {
   margin: 0 0 1rem;
-  font-size: clamp(2.7rem, 5vw, 4.7rem);
+  font-size: clamp(2.8rem, 5vw, 5rem);
   line-height: 0.95;
   max-width: 11ch;
 }
 
-.eyebrow {
-  margin: 0 0 0.7rem;
-  letter-spacing: 0.16em;
-  text-transform: uppercase;
-  font-size: 0.75rem;
-  font-family: "Trebuchet MS", "Segoe UI Variable Display", sans-serif;
-  color: rgba(19, 33, 38, 0.65);
-}
-
-.lede,
-.body-copy {
+.hero-text,
+.step-card p,
+.feature-card p,
+.download-card span,
+.platform-note {
   margin: 0;
+  color: var(--muted);
+  line-height: 1.65;
+}
+
+.hero-text {
   font-size: 1.06rem;
-  line-height: 1.7;
+  max-width: 58ch;
 }
 
-.hero-stats {
-  display: grid;
+.hero-actions,
+.cta-actions {
+  display: flex;
+  flex-wrap: wrap;
   gap: 14px;
-  align-content: center;
+  margin-top: 24px;
 }
 
-.stat-chip {
-  padding: 18px 20px;
-  border-radius: 20px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.78), rgba(248, 241, 231, 0.94));
-  border: 1px solid rgba(19, 33, 38, 0.08);
-}
-
-.stat-label {
-  display: inline-block;
-  margin-bottom: 0.45rem;
-  color: rgba(19, 33, 38, 0.62);
+.button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 54px;
+  padding: 0 22px;
+  border-radius: 18px;
   font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+  font-size: 1rem;
+  transition: transform 180ms ease, box-shadow 180ms ease, background 180ms ease;
+}
+
+.button:hover {
+  transform: translateY(-1px);
+}
+
+.button-primary {
+  background: linear-gradient(135deg, var(--orange) 0%, #e79251 100%);
+  color: #fffaf5;
+  box-shadow: 0 18px 34px rgba(215, 100, 30, 0.24);
+}
+
+.button-secondary {
+  background: rgba(16, 32, 40, 0.08);
+  color: var(--ink);
+}
+
+.platform-note {
+  margin-top: 16px;
+}
+
+.hero-panel {
+  padding: 24px;
+  border-radius: 24px;
+  background:
+    linear-gradient(180deg, rgba(20, 58, 64, 0.96), rgba(15, 31, 38, 0.96)),
+    linear-gradient(135deg, rgba(31, 107, 104, 0.24), rgba(215, 100, 30, 0.14));
+  color: #eefbf7;
+}
+
+.hero-panel-label,
+.download-os {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 14px;
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+  font-size: 0.76rem;
+  letter-spacing: 0.14em;
   text-transform: uppercase;
-  letter-spacing: 0.12em;
-  font-size: 0.74rem;
 }
 
-.stat-chip strong {
-  display: block;
-  font-size: 1.24rem;
-}
-
-.dashboard {
+.hero-list {
+  margin: 0;
+  padding-left: 1.2rem;
   display: grid;
-  grid-template-columns: repeat(12, 1fr);
-  gap: 20px;
+  gap: 12px;
+  line-height: 1.55;
+}
+
+.hero-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
   margin-top: 22px;
 }
 
-.steps-card,
-.auth-card,
-.folder-card,
-.links-card,
-.youtube-card,
-.progress-card,
-.files-card,
-.logs-card {
-  padding: 24px;
+.hero-badges span {
+  padding: 9px 12px;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.08);
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+  font-size: 0.9rem;
 }
 
-.steps-card {
-  grid-column: span 4;
+.section,
+.cta-strip {
+  margin-top: 22px;
+  padding: 28px;
 }
 
-.auth-card,
-.folder-card {
-  grid-column: span 4;
-}
-
-.links-card,
-.youtube-card {
-  grid-column: span 6;
-}
-
-.progress-card,
-.files-card,
-.logs-card {
-  grid-column: span 12;
+.section-alt {
+  background: linear-gradient(180deg, rgba(255, 251, 245, 0.92), rgba(243, 235, 222, 0.92));
 }
 
 .section-heading {
   margin-bottom: 18px;
 }
 
-.section-heading h2 {
+.section-heading h2,
+.cta-strip h2 {
   margin: 0;
-  font-size: 1.55rem;
+  font-size: clamp(1.8rem, 3vw, 2.75rem);
+  line-height: 1.02;
 }
 
-.steps {
-  list-style: none;
-  margin: 0;
-  padding: 0;
+.download-grid,
+.steps-grid,
+.feature-grid {
   display: grid;
-  gap: 16px;
+  gap: 18px;
 }
 
-.steps li {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 14px;
-  align-items: start;
-  padding: 16px;
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.52);
-  border: 1px solid rgba(19, 33, 38, 0.08);
+.download-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
 }
 
-.step-item.is-complete {
-  border-color: rgba(29, 122, 86, 0.3);
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.68), rgba(226, 244, 236, 0.88));
+.steps-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.feature-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.download-card,
+.step-card,
+.feature-card {
+  padding: 22px;
+  border-radius: 24px;
+  border: 1px solid rgba(16, 32, 40, 0.08);
+  background: rgba(255, 255, 255, 0.68);
+  transition: transform 180ms ease, box-shadow 180ms ease, border-color 180ms ease;
+}
+
+.download-card:hover,
+.step-card:hover,
+.feature-card:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 18px 34px rgba(10, 20, 25, 0.08);
+}
+
+.download-card strong {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-size: 1.2rem;
+}
+
+.download-card span:last-child {
+  display: block;
+}
+
+.download-card.is-recommended {
+  border-color: rgba(31, 107, 104, 0.34);
+  background: linear-gradient(180deg, rgba(232, 247, 243, 0.96), rgba(255, 255, 255, 0.84));
+  box-shadow: 0 20px 36px rgba(31, 107, 104, 0.14);
 }
 
 .step-index {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  width: 42px;
-  height: 42px;
+  width: 48px;
+  height: 48px;
+  margin-bottom: 16px;
   border-radius: 50%;
-  background: rgba(19, 33, 38, 0.08);
+  background: var(--sand);
+  color: var(--teal-deep);
   font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
-  font-size: 0.92rem;
 }
 
-.step-item.is-complete .step-index {
-  background: rgba(29, 122, 86, 0.14);
-  color: var(--ok);
+.step-card h3,
+.feature-card h3 {
+  margin: 0 0 0.7rem;
+  font-size: 1.18rem;
 }
 
-.step-copy {
-  min-width: 0;
-}
-
-.step-title-row {
+.cta-strip {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 12px;
-}
-
-.step-check {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 28px;
-  height: 28px;
-  border-radius: 50%;
-  border: 1px solid rgba(19, 33, 38, 0.12);
-  background: rgba(19, 33, 38, 0.04);
-  color: transparent;
-  flex: 0 0 auto;
-  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
-}
-
-.step-item.is-complete .step-check {
-  border-color: rgba(29, 122, 86, 0.42);
-  background: var(--ok);
-  color: #f7fff9;
-  transform: scale(1.03);
-}
-
-.step-item.is-complete .step-check::before {
-  content: "\2713";
-  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
-  font-size: 0.95rem;
-  line-height: 1;
-}
-
-.steps h3 {
-  margin: 0 0 0.45rem;
-  font-size: 1.04rem;
-}
-
-.steps p,
-.subtle-note,
-.selection-summary,
-.progress-detail {
-  margin: 0;
-  line-height: 1.55;
-  color: rgba(19, 33, 38, 0.74);
-}
-
-.subtle-note,
-.selection-summary {
-  margin-top: 14px;
-}
-
-.button-row {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 12px;
-  margin-top: 18px;
-}
-
-.action {
-  border: 0;
-  border-radius: 18px;
-  padding: 15px 18px;
-  cursor: pointer;
-  transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
-  box-shadow: 0 12px 24px rgba(19, 33, 38, 0.14);
-  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
-  font-size: 1rem;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  text-decoration: none;
-}
-
-.action:hover:not(:disabled) {
-  transform: translateY(-1px);
-}
-
-.action:disabled {
-  opacity: 0.55;
-  cursor: wait;
-}
-
-.action.is-disabled {
-  opacity: 0.55;
-  cursor: not-allowed;
-  pointer-events: none;
-}
-
-.action-primary {
-  background: linear-gradient(135deg, var(--sun) 0%, #e49853 100%);
-  color: #fff8f0;
-}
-
-.action-secondary {
-  background: linear-gradient(135deg, var(--teal) 0%, #2c8c86 100%);
-  color: #f3fffd;
-}
-
-.action-ghost {
-  background: rgba(19, 33, 38, 0.08);
-  color: var(--ink);
-}
-
-.direct-textarea {
-  width: 100%;
-  min-height: 220px;
-  margin-top: 16px;
-  padding: 16px 18px;
-  border: 1px solid rgba(19, 33, 38, 0.14);
-  border-radius: 20px;
-  background: rgba(255, 255, 255, 0.72);
-  color: var(--ink);
-  resize: vertical;
-  font-family: "Cascadia Code", "Consolas", monospace;
-  font-size: 0.95rem;
-  line-height: 1.55;
-}
-
-.toggle {
-  display: inline-flex;
-  align-items: center;
-  gap: 10px;
-  margin-top: 18px;
-  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
-}
-
-.toggle input {
-  width: 18px;
-  height: 18px;
-}
-
-.progress-panel,
-.sync-panel {
-  padding: 18px 20px;
-  border-radius: 20px;
-  border: 1px solid rgba(19, 33, 38, 0.08);
-}
-
-.progress-panel {
-  background: linear-gradient(135deg, rgba(31, 105, 102, 0.14), rgba(217, 122, 43, 0.14));
-}
-
-.sync-panel {
-  margin-top: 16px;
-  background: rgba(255, 255, 255, 0.56);
-}
-
-.progress-head {
-  display: flex;
-  justify-content: space-between;
-  align-items: end;
-  gap: 14px;
-}
-
-.progress-head .eyebrow {
-  margin-bottom: 0.35rem;
-}
-
-.progress-head strong,
-.sync-panel strong {
-  display: block;
-  font-size: 1.15rem;
-  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
-}
-
-.progress-value {
-  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
-  font-size: 0.85rem;
-  text-transform: uppercase;
-  letter-spacing: 0.1em;
-  color: rgba(19, 33, 38, 0.62);
-}
-
-.progress-track {
-  position: relative;
-  overflow: hidden;
-  height: 12px;
-  margin-top: 14px;
-  border-radius: 999px;
-  background: rgba(19, 33, 38, 0.1);
-}
-
-.progress-fill {
-  height: 100%;
-  width: 0;
-  border-radius: inherit;
-  background: linear-gradient(135deg, var(--teal) 0%, var(--sun) 100%);
-  box-shadow: 0 8px 22px rgba(31, 105, 102, 0.24);
-  transition: width 220ms ease;
-}
-
-.progress-fill.is-indeterminate {
-  width: 34%;
-  animation: progressSweep 1.45s ease-in-out infinite;
-}
-
-.file-links {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 14px;
-}
-
-.file-pill {
-  min-width: 210px;
-  padding: 16px 18px;
-  border-radius: 18px;
-  background: linear-gradient(135deg, rgba(255, 255, 255, 0.76), rgba(248, 241, 231, 0.92));
-  border: 1px solid rgba(19, 33, 38, 0.08);
-  text-decoration: none;
-  color: inherit;
-}
-
-.file-pill strong {
-  display: block;
-  margin-bottom: 0.4rem;
-  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
-}
-
-.logs {
-  min-height: 320px;
-  max-height: 420px;
-  overflow: auto;
-  padding: 16px;
-  border-radius: 20px;
-  background: #102127;
-  color: #d7efe8;
-  font-family: "Cascadia Code", "Consolas", monospace;
-  font-size: 0.92rem;
-  line-height: 1.55;
-}
-
-.log-line {
-  display: grid;
-  grid-template-columns: auto 1fr;
-  gap: 12px;
-  padding: 6px 0;
-  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
-}
-
-.log-time {
-  color: rgba(215, 239, 232, 0.6);
-}
-
-.log-line.error .log-message {
-  color: #ffb0b0;
-}
-
-.log-line.success .log-message {
-  color: #96f2cb;
-}
-
-.empty-state {
-  color: rgba(19, 33, 38, 0.64);
-}
-
-@keyframes rise {
-  from {
-    opacity: 0;
-    transform: translateY(10px);
-  }
-
-  to {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes progressSweep {
-  0% {
-    transform: translateX(-120%);
-  }
-
-  100% {
-    transform: translateX(340%);
-  }
+  gap: 20px;
+  background:
+    linear-gradient(135deg, rgba(31, 107, 104, 0.14), rgba(215, 100, 30, 0.12)),
+    rgba(255, 251, 246, 0.94);
 }
 
 @media (max-width: 1040px) {
   .hero,
-  .dashboard {
+  .download-grid,
+  .steps-grid,
+  .feature-grid,
+  .cta-strip {
     grid-template-columns: 1fr;
   }
 
-  .steps-card,
-  .auth-card,
-  .folder-card,
-  .links-card,
-  .youtube-card,
-  .progress-card,
-  .files-card,
-  .logs-card {
-    grid-column: span 1;
+  .hero,
+  .cta-strip {
+    display: grid;
   }
 }
 
-@media (max-width: 720px) {
-  .page-shell {
-    width: min(100% - 20px, 1240px);
-    padding-top: 20px;
+@media (max-width: 760px) {
+  .site-shell {
+    width: min(100% - 20px, 1180px);
+    padding-top: 16px;
+  }
+
+  .topbar {
+    flex-direction: column;
+    align-items: flex-start;
   }
 
   .hero,
-  .steps-card,
-  .auth-card,
-  .folder-card,
-  .links-card,
-  .youtube-card,
-  .progress-card,
-  .files-card,
-  .logs-card {
-    padding: 20px;
-    border-radius: 22px;
+  .section,
+  .cta-strip {
+    padding: 22px;
+    border-radius: 24px;
   }
 
-  .hero-copy h1 {
+  .hero h1 {
     max-width: none;
   }
 
-  .button-row {
+  .hero-actions,
+  .cta-actions {
     flex-direction: column;
+  }
+
+  .button {
+    width: 100%;
   }
 }

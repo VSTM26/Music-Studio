@@ -1,0 +1,586 @@
+:root {
+  --ink: #122028;
+  --panel: rgba(255, 252, 247, 0.88);
+  --line: rgba(18, 32, 40, 0.12);
+  --shadow: 0 24px 70px rgba(7, 19, 24, 0.15);
+  --orange: #d96a24;
+  --teal: #1f6a66;
+  --ok: #1a7c58;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body {
+  margin: 0;
+  min-height: 100%;
+  background:
+    radial-gradient(circle at top left, rgba(217, 106, 36, 0.2), transparent 28%),
+    radial-gradient(circle at bottom right, rgba(31, 106, 102, 0.18), transparent 26%),
+    linear-gradient(180deg, #efe4d4 0%, #f7f1e7 54%, #f3ece0 100%);
+  color: var(--ink);
+  font-family: Georgia, "Times New Roman", serif;
+}
+
+button,
+input,
+select,
+textarea {
+  font: inherit;
+}
+
+code {
+  padding: 0.1rem 0.35rem;
+  border-radius: 8px;
+  background: rgba(18, 32, 40, 0.08);
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 0.92em;
+}
+
+.page-shell {
+  position: relative;
+  width: min(1240px, calc(100% - 32px));
+  margin: 0 auto;
+  padding: 34px 0 48px;
+}
+
+.ambient {
+  position: fixed;
+  width: 320px;
+  height: 320px;
+  border-radius: 50%;
+  filter: blur(42px);
+  opacity: 0.42;
+  pointer-events: none;
+}
+
+.ambient-left {
+  top: 86px;
+  left: -120px;
+  background: rgba(217, 106, 36, 0.18);
+}
+
+.ambient-right {
+  right: -90px;
+  bottom: 44px;
+  background: rgba(31, 106, 102, 0.18);
+}
+
+.panel {
+  border: 1px solid var(--line);
+  border-radius: 28px;
+  background: var(--panel);
+  backdrop-filter: blur(18px);
+  box-shadow: var(--shadow);
+  animation: rise 380ms ease both;
+}
+
+.hero {
+  display: grid;
+  grid-template-columns: 1.35fr 0.95fr;
+  gap: 24px;
+  padding: 32px;
+}
+
+.hero-copy h1,
+.section-heading h2,
+.steps h3,
+.stat-chip strong,
+.progress-head strong,
+.sync-panel strong,
+.file-pill strong {
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+}
+
+.hero-copy h1 {
+  margin: 0 0 1rem;
+  font-size: clamp(2.65rem, 5vw, 4.85rem);
+  line-height: 0.94;
+  max-width: 10ch;
+}
+
+.eyebrow {
+  margin: 0 0 0.7rem;
+  letter-spacing: 0.15em;
+  text-transform: uppercase;
+  font-size: 0.75rem;
+  font-family: "Trebuchet MS", "Segoe UI Variable Display", sans-serif;
+  color: rgba(18, 32, 40, 0.62);
+}
+
+.lede,
+.body-copy {
+  margin: 0;
+  font-size: 1.05rem;
+  line-height: 1.68;
+}
+
+.hero-stats {
+  display: grid;
+  gap: 14px;
+  align-content: center;
+}
+
+.stat-chip {
+  padding: 18px 20px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.84), rgba(248, 241, 231, 0.94));
+  border: 1px solid rgba(18, 32, 40, 0.08);
+}
+
+.stat-label {
+  display: inline-block;
+  margin-bottom: 0.45rem;
+  color: rgba(18, 32, 40, 0.62);
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  font-size: 0.74rem;
+}
+
+.stat-chip strong {
+  display: block;
+  font-size: 1.22rem;
+}
+
+.dashboard {
+  display: grid;
+  grid-template-columns: repeat(12, 1fr);
+  gap: 20px;
+  margin-top: 22px;
+}
+
+.steps-card,
+.auth-card,
+.folder-card,
+.links-card,
+.youtube-card,
+.progress-card,
+.files-card,
+.logs-card {
+  padding: 24px;
+}
+
+.steps-card,
+.auth-card,
+.folder-card {
+  grid-column: span 4;
+}
+
+.links-card,
+.youtube-card {
+  grid-column: span 6;
+}
+
+.progress-card,
+.files-card,
+.logs-card {
+  grid-column: span 12;
+}
+
+.section-heading {
+  margin-bottom: 18px;
+}
+
+.section-heading h2 {
+  margin: 0;
+  font-size: 1.54rem;
+}
+
+.steps {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: grid;
+  gap: 16px;
+}
+
+.step-item {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 14px;
+  align-items: start;
+  padding: 16px;
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.56);
+  border: 1px solid rgba(18, 32, 40, 0.08);
+}
+
+.step-item.is-complete {
+  border-color: rgba(26, 124, 88, 0.28);
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.7), rgba(224, 244, 236, 0.9));
+}
+
+.step-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 42px;
+  height: 42px;
+  border-radius: 50%;
+  background: rgba(18, 32, 40, 0.08);
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+  font-size: 0.92rem;
+}
+
+.step-item.is-complete .step-index {
+  background: rgba(26, 124, 88, 0.14);
+  color: var(--ok);
+}
+
+.step-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.step-check {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  border: 1px solid rgba(18, 32, 40, 0.12);
+  background: rgba(18, 32, 40, 0.04);
+  color: transparent;
+  flex: 0 0 auto;
+  transition: background 180ms ease, border-color 180ms ease, color 180ms ease, transform 180ms ease;
+}
+
+.step-item.is-complete .step-check {
+  border-color: rgba(26, 124, 88, 0.42);
+  background: var(--ok);
+  color: #f7fff9;
+  transform: scale(1.03);
+}
+
+.step-item.is-complete .step-check::before {
+  content: "\2713";
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+  font-size: 0.95rem;
+  line-height: 1;
+}
+
+.steps h3 {
+  margin: 0 0 0.45rem;
+  font-size: 1.04rem;
+}
+
+.steps p,
+.subtle-note,
+.selection-summary,
+.progress-detail {
+  margin: 0;
+  line-height: 1.56;
+  color: rgba(18, 32, 40, 0.76);
+}
+
+.subtle-note,
+.selection-summary {
+  margin-top: 14px;
+}
+
+.field {
+  display: grid;
+  gap: 8px;
+  margin-top: 18px;
+}
+
+.field-label {
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+  font-size: 0.88rem;
+  color: rgba(18, 32, 40, 0.72);
+}
+
+.field-input {
+  width: 100%;
+  border: 1px solid rgba(18, 32, 40, 0.14);
+  border-radius: 16px;
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--ink);
+  padding: 14px 16px;
+}
+
+.button-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 12px;
+  margin-top: 18px;
+}
+
+.action {
+  border: 0;
+  border-radius: 18px;
+  padding: 15px 18px;
+  cursor: pointer;
+  transition: transform 180ms ease, box-shadow 180ms ease, opacity 180ms ease;
+  box-shadow: 0 12px 24px rgba(18, 32, 40, 0.14);
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+  font-size: 1rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.action:hover:not(:disabled) {
+  transform: translateY(-1px);
+}
+
+.action:disabled {
+  opacity: 0.55;
+  cursor: wait;
+}
+
+.action-primary {
+  background: linear-gradient(135deg, var(--orange) 0%, #e28d48 100%);
+  color: #fff9f3;
+}
+
+.action-secondary {
+  background: linear-gradient(135deg, var(--teal) 0%, #2c8a84 100%);
+  color: #f4fffd;
+}
+
+.action-ghost {
+  background: rgba(18, 32, 40, 0.08);
+  color: var(--ink);
+}
+
+.direct-textarea {
+  width: 100%;
+  min-height: 220px;
+  margin-top: 16px;
+  padding: 16px 18px;
+  border: 1px solid rgba(18, 32, 40, 0.14);
+  border-radius: 20px;
+  background: rgba(255, 255, 255, 0.74);
+  color: var(--ink);
+  resize: vertical;
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 0.95rem;
+  line-height: 1.55;
+}
+
+.toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 18px;
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+}
+
+.toggle input {
+  width: 18px;
+  height: 18px;
+}
+
+.progress-panel,
+.sync-panel {
+  padding: 18px 20px;
+  border-radius: 20px;
+  border: 1px solid rgba(18, 32, 40, 0.08);
+}
+
+.progress-panel {
+  background: linear-gradient(135deg, rgba(31, 106, 102, 0.14), rgba(217, 106, 36, 0.14));
+}
+
+.sync-panel {
+  margin-top: 16px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.progress-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: end;
+  gap: 14px;
+}
+
+.progress-head .eyebrow {
+  margin-bottom: 0.35rem;
+}
+
+.progress-head strong,
+.sync-panel strong {
+  display: block;
+  font-size: 1.15rem;
+}
+
+.progress-value {
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+  font-size: 0.85rem;
+  text-transform: uppercase;
+  letter-spacing: 0.1em;
+  color: rgba(18, 32, 40, 0.62);
+}
+
+.progress-track {
+  position: relative;
+  overflow: hidden;
+  height: 12px;
+  margin-top: 14px;
+  border-radius: 999px;
+  background: rgba(18, 32, 40, 0.1);
+}
+
+.progress-fill {
+  height: 100%;
+  width: 0;
+  border-radius: inherit;
+  background: linear-gradient(135deg, var(--teal) 0%, var(--orange) 100%);
+  box-shadow: 0 8px 22px rgba(31, 106, 102, 0.24);
+  transition: width 220ms ease;
+}
+
+.progress-fill.is-indeterminate {
+  width: 34%;
+  animation: progressSweep 1.45s ease-in-out infinite;
+}
+
+.file-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 14px;
+}
+
+.file-pill {
+  min-width: 220px;
+  padding: 16px 18px;
+  border-radius: 18px;
+  background: linear-gradient(135deg, rgba(255, 255, 255, 0.8), rgba(248, 241, 231, 0.94));
+  border: 1px solid rgba(18, 32, 40, 0.08);
+  color: inherit;
+  text-align: left;
+}
+
+.file-pill strong,
+.file-pill span,
+.file-pill em {
+  display: block;
+}
+
+.file-pill strong {
+  margin-bottom: 0.4rem;
+}
+
+.file-pill span {
+  color: rgba(18, 32, 40, 0.7);
+}
+
+.file-pill em {
+  margin-top: 0.7rem;
+  color: var(--teal);
+  font-style: normal;
+  font-family: "Trebuchet MS", "Bahnschrift", sans-serif;
+  font-size: 0.88rem;
+}
+
+.logs {
+  min-height: 320px;
+  max-height: 420px;
+  overflow: auto;
+  padding: 16px;
+  border-radius: 20px;
+  background: #102127;
+  color: #d7efe8;
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 0.92rem;
+  line-height: 1.55;
+}
+
+.log-line {
+  display: grid;
+  grid-template-columns: auto 1fr;
+  gap: 12px;
+  padding: 6px 0;
+  border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.log-time {
+  color: rgba(215, 239, 232, 0.62);
+}
+
+.log-line.error .log-message {
+  color: #ffb4aa;
+}
+
+.log-line.success .log-message {
+  color: #98f5cb;
+}
+
+.empty-state {
+  color: rgba(18, 32, 40, 0.64);
+}
+
+@keyframes rise {
+  from {
+    opacity: 0;
+    transform: translateY(10px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes progressSweep {
+  0% {
+    transform: translateX(-120%);
+  }
+
+  100% {
+    transform: translateX(340%);
+  }
+}
+
+@media (max-width: 1040px) {
+  .hero,
+  .dashboard {
+    grid-template-columns: 1fr;
+  }
+
+  .steps-card,
+  .auth-card,
+  .folder-card,
+  .links-card,
+  .youtube-card,
+  .progress-card,
+  .files-card,
+  .logs-card {
+    grid-column: span 1;
+  }
+}
+
+@media (max-width: 720px) {
+  .page-shell {
+    width: min(100% - 20px, 1240px);
+    padding-top: 20px;
+  }
+
+  .hero,
+  .steps-card,
+  .auth-card,
+  .folder-card,
+  .links-card,
+  .youtube-card,
+  .progress-card,
+  .files-card,
+  .logs-card {
+    padding: 20px;
+    border-radius: 22px;
+  }
+
+  .hero-copy h1 {
+    max-width: none;
+  }
+
+  .button-row {
+    flex-direction: column;
+  }
+}

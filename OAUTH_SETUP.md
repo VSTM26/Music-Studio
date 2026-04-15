@@ -1,26 +1,12 @@
 # Google OAuth Setup
 
-## Required environment variables
+Google OAuth is now **legacy** in this repo.
 
-Set these on Render:
+Music Studio v1 no longer depends on hosted Google login for the main YouTube flow. The intended product path is:
 
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `OAUTH_REDIRECT_URI`
+1. load the unpacked Chrome extension
+2. sign into YouTube in Chrome
+3. import the user's current browser session
+4. let the local helper use that session for downloads
 
-Example redirect URI:
-
-`https://your-render-app.onrender.com/api/auth/callback`
-
-## Google Cloud Console
-
-1. Create or open a Google Cloud project.
-2. Enable the YouTube Data API v3.
-3. Create an OAuth client of type `Web application`.
-4. Add your Render callback URL to the authorized redirect URIs list.
-
-## Scope used by the app
-
-- `https://www.googleapis.com/auth/youtube.readonly`
-
-That scope is used to read the signed-in user's YouTube liked videos.
+The older OAuth files can stay in the repo temporarily for compatibility work, but they are not the primary path for YouTube likes anymore.

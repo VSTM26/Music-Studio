@@ -3,200 +3,192 @@
   <head>
     <meta charset="utf-8">
     <meta name="viewport" content="width=device-width, initial-scale=1">
-    <title>Music Studio</title>
+    <title>Music Studio Desktop</title>
+    <meta
+      name="description"
+      content="Download Music Studio for Windows, macOS, and Linux. Sign in with your own browser, pull YouTube links or likes, and save files locally."
+    >
     <link rel="stylesheet" href="/styles.css">
   </head>
   <body>
-    <div class="page-shell">
-      <div class="ambient ambient-left"></div>
-      <div class="ambient ambient-right"></div>
+    <div class="site-shell">
+      <div class="glow glow-left"></div>
+      <div class="glow glow-right"></div>
 
-      <header class="hero panel">
-        <div class="hero-copy">
-          <p class="eyebrow">Hosted YouTube Downloader</p>
-          <h1>Paste a link or connect YouTube. Save everything locally.</h1>
-          <p class="lede">
-            Music Studio now focuses on the easy hosted flow: open YouTube in your own
-            browser tab, sign in with your own account there, then drop links here.
-            The server prepares the files, and your browser saves them into a folder you choose on your own computer.
-          </p>
-        </div>
-        <div class="hero-stats">
-          <article class="stat-chip">
-            <span class="stat-label">Browser Sign-In</span>
-            <strong id="authHeroStatus">Checking...</strong>
-          </article>
-          <article class="stat-chip">
-            <span class="stat-label">Downloader</span>
-            <strong id="toolHeroStatus">Checking...</strong>
-          </article>
-          <article class="stat-chip">
-            <span class="stat-label">Latest Job</span>
-            <strong id="jobHeroStatus">Waiting...</strong>
-          </article>
-        </div>
+      <header class="topbar">
+        <a class="brand" href="/">
+          <span class="brand-mark">MS</span>
+          <span class="brand-copy">
+            <strong>Music Studio</strong>
+            <span>Desktop downloader</span>
+          </span>
+        </a>
+        <nav class="topbar-links" aria-label="Primary">
+          <a href="#downloads">Downloads</a>
+          <a href="#how-it-works">How it works</a>
+          <a href="https://github.com/VSTM26/Music-Studio" target="_blank" rel="noreferrer">GitHub</a>
+        </nav>
       </header>
 
-      <main class="dashboard">
-        <section class="panel steps-card">
+      <main>
+        <section class="hero">
+          <div class="hero-copy">
+            <p class="eyebrow">Own your browser. Keep your files.</p>
+            <h1>The YouTube downloader that runs on the user’s machine, not a remote server.</h1>
+            <p class="hero-text">
+              Music Studio uses the user’s real local browser session, downloads with local tools,
+              and saves finished files into a folder they choose on Windows, macOS, or Linux.
+            </p>
+            <div class="hero-actions">
+              <a
+                id="primaryDownload"
+                class="button button-primary"
+                href="https://github.com/VSTM26/Music-Studio/releases/latest"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Download Latest Release
+              </a>
+              <a
+                class="button button-secondary"
+                href="https://github.com/VSTM26/Music-Studio"
+                target="_blank"
+                rel="noreferrer"
+              >
+                View GitHub Repo
+              </a>
+            </div>
+            <p id="platformNote" class="platform-note">
+              Desktop installers and release files are published on GitHub Releases.
+            </p>
+          </div>
+
+          <div class="hero-panel">
+            <div class="hero-panel-label">What users get</div>
+            <ul class="hero-list">
+              <li>Use the user’s own browser sign-in instead of broken server auth</li>
+              <li>Download pasted links or the real YouTube likes playlist</li>
+              <li>Save files directly into a chosen local folder</li>
+              <li>Run the same product on Windows, macOS, and Linux</li>
+            </ul>
+            <div class="hero-badges">
+              <span>Local auth</span>
+              <span>Local downloads</span>
+              <span>Cross-platform</span>
+            </div>
+          </div>
+        </section>
+
+        <section id="downloads" class="section">
+          <div class="section-heading">
+            <p class="eyebrow">Downloads</p>
+            <h2>Pick the build for the user’s computer</h2>
+          </div>
+          <div class="download-grid">
+            <a
+              class="download-card"
+              data-platform="windows"
+              href="https://github.com/VSTM26/Music-Studio/releases/latest"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span class="download-os">Windows</span>
+              <strong>Grab the latest Windows build</strong>
+              <span>Installer or packaged build from GitHub Releases</span>
+            </a>
+            <a
+              class="download-card"
+              data-platform="macos"
+              href="https://github.com/VSTM26/Music-Studio/releases/latest"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span class="download-os">macOS</span>
+              <strong>Grab the latest Mac build</strong>
+              <span>Use the newest signed package you publish in Releases</span>
+            </a>
+            <a
+              class="download-card"
+              data-platform="linux"
+              href="https://github.com/VSTM26/Music-Studio/releases/latest"
+              target="_blank"
+              rel="noreferrer"
+            >
+              <span class="download-os">Linux</span>
+              <strong>Grab the latest Linux build</strong>
+              <span>AppImage, tarball, or distro package from Releases</span>
+            </a>
+          </div>
+        </section>
+
+        <section id="how-it-works" class="section section-alt">
           <div class="section-heading">
             <p class="eyebrow">How It Works</p>
-            <h2>Three simple steps</h2>
+            <h2>Simple enough for normal users</h2>
           </div>
-          <ol class="steps">
-            <li id="stepBrowser" class="step-item">
+          <div class="steps-grid">
+            <article class="step-card">
               <span class="step-index">01</span>
-              <div class="step-copy">
-                <div class="step-title-row">
-                  <h3>Open YouTube in your browser</h3>
-                  <span class="step-check" aria-hidden="true"></span>
-                </div>
-                <p>Use a normal browser tab on the user's own computer. Sign in there with the user's own YouTube account.</p>
-              </div>
-            </li>
-            <li id="stepFolder" class="step-item">
+              <h3>Download the app</h3>
+              <p>Install Music Studio on the user’s own machine instead of sending them into a remote browser or VM.</p>
+            </article>
+            <article class="step-card">
               <span class="step-index">02</span>
-              <div class="step-copy">
-                <div class="step-title-row">
-                  <h3>Choose a local folder</h3>
-                  <span class="step-check" aria-hidden="true"></span>
-                </div>
-                <p>In Chrome or Edge, pick the folder on your own machine where finished files should land.</p>
-              </div>
-            </li>
-            <li id="stepDownload" class="step-item">
+              <h3>Sign into YouTube in their browser</h3>
+              <p>Music Studio imports the local browser session so protected videos and likes can use the user’s real credentials.</p>
+            </article>
+            <article class="step-card">
               <span class="step-index">03</span>
-              <div class="step-copy">
-                <div class="step-title-row">
-                  <h3>Start the download</h3>
-                  <span class="step-check" aria-hidden="true"></span>
-                </div>
-                <p>Paste the links you want. When the job finishes, Music Studio saves the files into the folder you picked.</p>
-              </div>
-            </li>
-          </ol>
+              <h3>Choose a folder and download</h3>
+              <p>Paste links or pull likes, then save finished files right into the folder the user picked.</p>
+            </article>
+          </div>
         </section>
 
-        <section class="panel auth-card">
+        <section class="section features-section">
           <div class="section-heading">
-            <p class="eyebrow">Account</p>
-            <h2>Browser sign-in</h2>
+            <p class="eyebrow">Why This Version</p>
+            <h2>Built for the flow you actually wanted</h2>
           </div>
-          <p id="authStatusText" class="body-copy">Opening your normal YouTube sign-in tab...</p>
-          <div class="button-row">
+          <div class="feature-grid">
+            <article class="feature-card">
+              <h3>No Render auth hacks</h3>
+              <p>The desktop app keeps browser auth on the user’s machine where it belongs, so downloads can use the real local session.</p>
+            </article>
+            <article class="feature-card">
+              <h3>No confusing VM setup</h3>
+              <p>Users do not need a remote desktop, noVNC, or a hosted browser to get through sign-in.</p>
+            </article>
+            <article class="feature-card">
+              <h3>Local folder output</h3>
+              <p>Finished files land in the folder the user chooses instead of being trapped on a server.</p>
+            </article>
+          </div>
+        </section>
+
+        <section class="cta-strip">
+          <div>
+            <p class="eyebrow">Ready To Ship</p>
+            <h2>Host this page anywhere. Let GitHub Releases handle the app binaries.</h2>
+          </div>
+          <div class="cta-actions">
             <a
-              id="authSignInBtn"
-              class="action action-primary"
-              href="https://accounts.google.com/ServiceLogin?service=youtube"
+              class="button button-primary"
+              href="https://github.com/VSTM26/Music-Studio/releases/latest"
               target="_blank"
-              rel="noopener noreferrer"
-            >Open YouTube Sign-In Tab</a>
+              rel="noreferrer"
+            >
+              Open Releases
+            </a>
             <a
-              id="authSignOutBtn"
-              class="action action-ghost"
-              href="https://www.youtube.com/playlist?list=LL"
+              class="button button-secondary"
+              href="https://github.com/VSTM26/Music-Studio"
               target="_blank"
-              rel="noopener noreferrer"
-            >Open YouTube Likes Tab</a>
+              rel="noreferrer"
+            >
+              Open Source Code
+            </a>
           </div>
-        </section>
-
-        <section class="panel folder-card">
-          <div class="section-heading">
-            <p class="eyebrow">Save Location</p>
-            <h2>Local folder</h2>
-          </div>
-          <p id="folderStatus" class="body-copy">No local folder chosen yet.</p>
-          <p id="folderDetail" class="subtle-note">
-            Chrome and Edge can save directly into a folder you choose. Other browsers will still show normal download links after the job finishes.
-          </p>
-          <div class="button-row">
-            <button id="chooseFolderBtn" class="action action-secondary">Choose Local Folder</button>
-            <button id="saveLatestBtn" class="action action-ghost">Save Latest Files Now</button>
-          </div>
-        </section>
-
-        <section class="panel links-card">
-          <div class="section-heading">
-            <p class="eyebrow">Links</p>
-            <h2>Download from pasted URLs</h2>
-          </div>
-          <p class="body-copy">
-            Paste one or more supported URLs. Playlists and regular YouTube links work well here.
-          </p>
-          <textarea id="directUrls" class="direct-textarea" placeholder="Paste one or more URLs here&#10;https://www.youtube.com/watch?v=...&#10;https://music.youtube.com/watch?v=..."></textarea>
-          <label class="toggle">
-            <input id="directExtractAudio" type="checkbox">
-            <span>Extract MP3 audio with ffmpeg after download</span>
-          </label>
-          <p id="directSummary" class="selection-summary">Paste one or more URLs to begin.</p>
-          <div class="button-row">
-            <button id="directDownloadBtn" class="action action-primary">Download Pasted Links</button>
-          </div>
-        </section>
-
-        <section class="panel youtube-card">
-          <div class="section-heading">
-            <p class="eyebrow">YouTube</p>
-            <h2>Pull from your account</h2>
-          </div>
-          <p class="body-copy">
-            Use these shortcuts to open YouTube on the user's own computer. After you sign in there, copy the links you want and paste them into Music Studio.
-          </p>
-          <p id="youtubeSummary" class="selection-summary">
-            The hosted site cannot directly reuse your local YouTube browser session for private account downloads.
-          </p>
-          <div class="button-row">
-            <a
-              id="downloadLikedBtn"
-              class="action action-secondary"
-              href="https://www.youtube.com/playlist?list=LL"
-              target="_blank"
-              rel="noopener noreferrer"
-            >Open My YouTube Likes</a>
-          </div>
-        </section>
-
-        <section class="panel progress-card">
-          <div class="section-heading">
-            <p class="eyebrow">Progress</p>
-            <h2>Live job status</h2>
-          </div>
-          <div class="progress-panel">
-            <div class="progress-head">
-              <div>
-                <p class="eyebrow">Server Progress</p>
-                <strong id="progressLabel">Ready</strong>
-              </div>
-              <span id="progressValue" class="progress-value">Idle</span>
-            </div>
-            <div class="progress-track">
-              <div id="progressFill" class="progress-fill"></div>
-            </div>
-            <p id="progressDetail" class="progress-detail">Paste links after signing in to YouTube in your own browser tab.</p>
-          </div>
-          <div class="sync-panel">
-            <p class="eyebrow">Local Save</p>
-            <strong id="syncStatus">Waiting for a completed download job.</strong>
-            <p id="syncDetail" class="progress-detail">Choose a local folder so Music Studio can save finished files automatically when the server job completes.</p>
-          </div>
-        </section>
-
-        <section class="panel files-card">
-          <div class="section-heading">
-            <p class="eyebrow">Files</p>
-            <h2>Latest finished job</h2>
-          </div>
-          <p id="latestDownloadSummary" class="body-copy">No completed job yet.</p>
-          <div id="fileLinks" class="file-links empty-state">Finished files will appear here.</div>
-        </section>
-
-        <section class="panel logs-card">
-          <div class="section-heading">
-            <p class="eyebrow">Process Log</p>
-            <h2>Live output</h2>
-          </div>
-          <div id="logs" class="logs empty-state">Waiting for activity...</div>
         </section>
       </main>
     </div>

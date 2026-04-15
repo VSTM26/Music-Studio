@@ -14,7 +14,8 @@ COPY . .
 ENV PYTHONUNBUFFERED=1
 ENV NO_OPEN_BROWSER=1
 ENV APP_HOST=0.0.0.0
+ENV MUSIC_STUDIO_HELPER_ONLY=1
 
 EXPOSE 4173
 
-CMD ["python", "main.py"]
+CMD ["python", "main.py", "--helper-only"]

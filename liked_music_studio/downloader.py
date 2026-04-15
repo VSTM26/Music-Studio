@@ -11,9 +11,9 @@ from pathlib import Path
 from shutil import which
 from typing import Any, Callable
 
+from .paths import RUNTIME_DIR
 
-BASE_DIR = Path(__file__).resolve().parents[1]
-FFMPEG_TOOL_DIR = BASE_DIR / "runtime" / "tools" / "ffmpeg"
+FFMPEG_TOOL_DIR = RUNTIME_DIR / "tools" / "ffmpeg"
 GITHUB_API_HEADERS = {
     "Accept": "application/vnd.github+json",
     "User-Agent": "Music-Studio",
@@ -428,6 +428,7 @@ def _download_url_batch(
     log: Callable[[str, str], None],
     progress: ProgressCallback | None = None,
     http_headers: dict[str, str] | None = None,
+    cookie_file: Path | None = None,
 ) -> Path:
     normalized_urls = _normalize_urls(urls)
     if not normalized_urls:
@@ -463,6 +464,8 @@ def _download_url_batch(
     }
     if http_headers:
         ydl_options["http_headers"] = dict(http_headers)
+    if cookie_file:
+        ydl_options["cookiefile"] = str(cookie_file)
     if extract_audio:
         ydl_options["format"] = "bestaudio/best"
         ydl_options["ffmpeg_location"] = str(Path(ffmpeg_path).parent)
@@ -500,11 +503,12 @@ def download_tracks(
     log: Callable[[str, str], None],
     progress: ProgressCallback | None = None,
     http_headers: dict[str, str] | None = None,
+    cookie_file: Path | None = None,
 ) -> Path:
     urls = [track.get("url") for track in tracks if isinstance(track.get("url"), str) and track["url"]]
     if not urls:
         raise RuntimeError("No downloadable URLs were found in the selected tracks.")
-    return _download_url_batch(urls, output_dir, extract_audio, log, progress, http_headers)
+    return _download_url_batch(urls, output_dir, extract_audio, log, progress, http_headers, cookie_file)
 
 
 def download_urls(
@@ -514,5 +518,6 @@ def download_urls(
     log: Callable[[str, str], None],
     progress: ProgressCallback | None = None,
     http_headers: dict[str, str] | None = None,
+    cookie_file: Path | None = None,
 ) -> Path:
-    return _download_url_batch(urls, output_dir, extract_audio, log, progress, http_headers)
+    return _download_url_batch(urls, output_dir, extract_audio, log, progress, http_headers, cookie_file)

@@ -1,28 +1,37 @@
 # Music Studio
 
-Music Studio is now a hosted, Google-login-first downloader for YouTube links and YouTube liked videos.
+Music Studio is now a **desktop app** for Windows, macOS, and Linux.
 
-## What it does
+The app opens a native window, lets the user sign into YouTube in their normal browser, imports that browser session locally, then uses `yt-dlp` and `ffmpeg` on the same machine to download pasted links or the user's `LL` likes playlist into a folder they choose.
 
-- lets a user paste one or more supported media links
-- lets a user sign in with Google and pull from their YouTube liked videos
-- runs `yt-dlp` on the server
-- saves finished files into a folder the user chooses in their own browser
-- optionally extracts MP3 audio with `ffmpeg`
+## What changed
 
-## Hosted flow
+- the main product is now a desktop app, not a hosted Render flow
+- the Python backend now runs as an embedded local service inside the app
+- browser authentication now comes from installed local browsers instead of hosted Google login
+- the repo still contains some legacy OAuth and extension artifacts, but they are no longer the primary path
 
-1. Open the Render site.
-2. Click `Choose Local Folder` in Chrome or Edge.
-3. Either:
-   - paste links and click `Download Pasted Links`, or
-   - sign in with Google and click `Download My Liked Videos`
-4. Wait for the server job to finish.
-5. Music Studio writes the finished files into the chosen folder on the user's machine.
+## Current desktop architecture
 
-Browsers without the File System Access API can still use the app, but they will need to download finished files manually from the file list.
+- `main.py`
+  - launches the desktop app by default
+  - use `python main.py --helper-only` to run only the local HTTP service
+- `liked_music_studio/desktop_app.py`
+  - starts the local backend
+  - opens the native app window with `pywebview`
+  - exposes native actions like folder picking and opening external browser tabs
+- `liked_music_studio/server.py`
+  - manages browser-session import
+  - runs download jobs
+  - tracks logs, progress, and finished files
+- `liked_music_studio/downloader.py`
+  - runs `yt-dlp`
+  - installs or finds `ffmpeg`
+  - uses imported browser cookies when available
+- `public/`
+  - main desktop app UI
 
-## Local development
+## Run locally
 
 ```powershell
 cd C:\path\to\Music-Studio
@@ -32,21 +41,31 @@ pip install -r requirements.txt
 python main.py
 ```
 
-The app serves on `PORT` when set, otherwise it defaults to `4173`.
+If you only want the local backend service without opening the native app window:
 
-## Render environment variables
+```powershell
+python main.py --helper-only
+```
 
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `OAUTH_REDIRECT_URI`
+## Desktop app flow
 
-Use your Render app callback URL for `OAUTH_REDIRECT_URI`, for example:
+1. Open Music Studio
+2. Click `Open YouTube Sign-In`
+3. Sign into YouTube in your normal browser
+4. Pick the browser to import from
+5. Click `Use Current Browser Session`
+6. Click `Choose Local Folder`
+7. Paste links or click `Download My Likes`
 
-`https://your-app.onrender.com/api/auth/callback`
+## Packaging notes
 
-## Notes
+- this codebase is structured to be packaged as a desktop app
+- for public releases, build a native bundle on each operating system
+- `PyInstaller` is the simplest next packaging path, but it must be run separately on Windows, macOS, and Linux
 
-- This version removes the old remote browser / VNC workflow.
-- Google sign-in is used for reading a user's YouTube liked videos.
-- Pasted links can still be downloaded without Google sign-in.
-- The browser-side local folder flow works best on HTTPS in Chromium-based browsers.
+## Dependencies
+
+- `yt-dlp`
+- `imageio-ffmpeg`
+- `browser-cookie3`
+- `pywebview`

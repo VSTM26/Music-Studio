@@ -1,19 +1,11 @@
 # Render Setup
 
-## Environment variables
+Render is no longer the primary product path for Music Studio v1.
 
-Add these in your Render service settings:
+The main architecture is now:
 
-- `GOOGLE_CLIENT_ID`
-- `GOOGLE_CLIENT_SECRET`
-- `OAUTH_REDIRECT_URI=https://your-render-app.onrender.com/api/auth/callback`
+- unpacked Chrome extension for the user interface
+- local Python helper on `127.0.0.1:4173`
+- local Chrome browser session import for YouTube authentication
 
-## Deploy
-
-Push this repo to GitHub and let Render redeploy from that branch.
-
-The container is now a plain Python web service. It no longer starts Chrome, VNC, noVNC, or nginx.
-
-## Browser recommendation
-
-For the smoothest local-save experience, open the hosted site in Chrome or Edge so the site can write finished files directly into a folder the user chooses.
+If this repo is still deployed on Render, treat that deployment as a secondary landing page or documentation surface only. The main download/authentication flow should run locally through the extension and helper.
