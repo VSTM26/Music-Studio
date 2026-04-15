@@ -16,14 +16,14 @@
           <p class="eyebrow">Hosted YouTube Downloader</p>
           <h1>Paste a link or connect YouTube. Save everything locally.</h1>
           <p class="lede">
-            Music Studio now focuses on the easy hosted flow: sign in with Google,
-            drop in links, or pull from your YouTube likes. The server prepares the
-            files, and your browser saves them into a folder you choose on your own computer.
+            Music Studio now focuses on the easy hosted flow: open YouTube in your own
+            browser tab, sign in with your own account there, then drop links here.
+            The server prepares the files, and your browser saves them into a folder you choose on your own computer.
           </p>
         </div>
         <div class="hero-stats">
           <article class="stat-chip">
-            <span class="stat-label">Google Sign-In</span>
+            <span class="stat-label">Browser Sign-In</span>
             <strong id="authHeroStatus">Checking...</strong>
           </article>
           <article class="stat-chip">
@@ -47,8 +47,8 @@
             <li>
               <span class="step-index">01</span>
               <div>
-                <h3>Connect Google</h3>
-                <p>Sign in once if you want Music Studio to read your YouTube likes. Pasted links can work with or without sign-in.</p>
+                <h3>Open YouTube in your browser</h3>
+                <p>Use a normal browser tab on the user's own computer. Sign in there with the user's own YouTube account.</p>
               </div>
             </li>
             <li>
@@ -62,7 +62,7 @@
               <span class="step-index">03</span>
               <div>
                 <h3>Start the download</h3>
-                <p>Paste links or pull from your YouTube likes. When the job finishes, Music Studio saves the files into the folder you picked.</p>
+                <p>Paste the links you want. When the job finishes, Music Studio saves the files into the folder you picked.</p>
               </div>
             </li>
           </ol>
@@ -71,12 +71,12 @@
         <section class="panel auth-card">
           <div class="section-heading">
             <p class="eyebrow">Account</p>
-            <h2>Google connection</h2>
+            <h2>Browser sign-in</h2>
           </div>
-          <p id="authStatusText" class="body-copy">Checking Google sign-in status...</p>
+          <p id="authStatusText" class="body-copy">Opening your normal YouTube sign-in tab...</p>
           <div class="button-row">
-            <button id="authSignInBtn" class="action action-primary">Sign In with Google</button>
-            <button id="authSignOutBtn" class="action action-ghost">Sign Out</button>
+            <button id="authSignInBtn" class="action action-primary">Open YouTube Sign-In Tab</button>
+            <button id="authSignOutBtn" class="action action-ghost">Open YouTube Likes Tab</button>
           </div>
         </section>
 
@@ -120,17 +120,13 @@
             <h2>Pull from your account</h2>
           </div>
           <p class="body-copy">
-            Signed in with Google? Music Studio can read your liked YouTube videos and prepare them for local saving without the old remote browser flow.
+            Use these shortcuts to open YouTube on the user's own computer. After you sign in there, copy the links you want and paste them into Music Studio.
           </p>
-          <label class="toggle">
-            <input id="likedExtractAudio" type="checkbox">
-            <span>Extract MP3 audio for my liked videos</span>
-          </label>
           <p id="youtubeSummary" class="selection-summary">
-            Sign in with Google to enable this option.
+            The hosted site cannot directly reuse your local YouTube browser session for private account downloads.
           </p>
           <div class="button-row">
-            <button id="downloadLikedBtn" class="action action-secondary">Download My Liked Videos</button>
+            <button id="downloadLikedBtn" class="action action-secondary">Open My YouTube Likes</button>
           </div>
         </section>
 
@@ -150,7 +146,7 @@
             <div class="progress-track">
               <div id="progressFill" class="progress-fill"></div>
             </div>
-            <p id="progressDetail" class="progress-detail">Paste links or connect YouTube to start.</p>
+            <p id="progressDetail" class="progress-detail">Paste links after signing in to YouTube in your own browser tab.</p>
           </div>
           <div class="sync-panel">
             <p class="eyebrow">Local Save</p>

@@ -26,7 +26,6 @@ const elements = {
   directExtractAudio: document.querySelector('#directExtractAudio'),
   directSummary: document.querySelector('#directSummary'),
   directDownloadBtn: document.querySelector('#directDownloadBtn'),
-  likedExtractAudio: document.querySelector('#likedExtractAudio'),
   youtubeSummary: document.querySelector('#youtubeSummary'),
   downloadLikedBtn: document.querySelector('#downloadLikedBtn'),
   progressLabel: document.querySelector('#progressLabel'),
@@ -100,6 +99,13 @@ function getAuth() {
   return state.status?.auth || { configured: false, authenticated: false };
 }
 
+function openBrowserTab(url) {
+  const popup = window.open(url, '_blank', 'noopener,noreferrer');
+  if (!popup) {
+    throw new Error('The browser blocked the new tab. Please allow pop-ups for this site and try again.');
+  }
+}
+
 function getDownloadJob() {
   return state.status?.download || {};
 }
@@ -137,17 +143,12 @@ function setSyncState(status, detail, extra = {}) {
 }
 
 function renderHero() {
-  const auth = getAuth();
   const tools = state.status?.tools || {};
   const latest = getLatestDownload();
   const ytDlpAvailable = Boolean(tools?.ytDlp?.available);
   const audioReady = Boolean(tools?.audioExtraction?.available);
 
-  elements.authHeroStatus.textContent = auth.authenticated
-    ? 'Connected'
-    : auth.configured
-      ? 'Ready to sign in'
-      : 'Needs setup';
+  elements.authHeroStatus.textContent = 'Use your own browser tab';
   elements.toolHeroStatus.textContent = ytDlpAvailable
     ? audioReady ? 'Media + MP3 ready' : 'Media ready'
     : 'Unavailable';
@@ -159,26 +160,10 @@ function renderHero() {
 }
 
 function renderAuth() {
-  const auth = getAuth();
-  if (!auth.configured) {
-    elements.authStatusText.textContent =
-      'Google sign-in is not configured on the server yet. Set GOOGLE_CLIENT_ID, GOOGLE_CLIENT_SECRET, and OAUTH_REDIRECT_URI on Render.';
-    elements.authSignInBtn.style.display = 'none';
-    elements.authSignOutBtn.style.display = 'none';
-    return;
-  }
-
-  if (auth.authenticated) {
-    elements.authStatusText.textContent =
-      'Google is connected. Music Studio can now read your YouTube liked videos.';
-    elements.authSignInBtn.style.display = 'none';
-    elements.authSignOutBtn.style.display = 'inline-flex';
-  } else {
-    elements.authStatusText.textContent =
-      'Sign in with Google if you want to pull from your YouTube likes. Pasted links can still be downloaded without signing in.';
-    elements.authSignInBtn.style.display = 'inline-flex';
-    elements.authSignOutBtn.style.display = 'none';
-  }
+  elements.authStatusText.textContent =
+    'This opens YouTube in a normal tab on the user\'s own computer. Sign in there with the user\'s own browser session, then paste the links you want here.';
+  elements.authSignInBtn.style.display = 'inline-flex';
+  elements.authSignOutBtn.style.display = 'inline-flex';
 }
 
 function renderFolder() {
@@ -212,14 +197,8 @@ function renderDirectSummary() {
 }
 
 function renderYouTubeSummary() {
-  const auth = getAuth();
-  if (!auth.configured) {
-    elements.youtubeSummary.textContent = 'Google sign-in must be configured on the server first.';
-    return;
-  }
-  elements.youtubeSummary.textContent = auth.authenticated
-    ? `Music Studio will read your liked YouTube videos and ${elements.likedExtractAudio.checked ? 'extract MP3 audio' : 'prepare media files'} for local saving.`
-    : 'Sign in with Google to enable downloading from your YouTube likes.';
+  elements.youtubeSummary.textContent =
+    'After you sign in in that browser tab, open your likes there and paste the video or playlist links you want into Music Studio.';
 }
 
 function renderProgress() {
@@ -309,21 +288,19 @@ function renderLogs() {
 }
 
 function syncActionButtons() {
-  const auth = getAuth();
   const jobRunning = Boolean(getDownloadJob().running);
   const ytDlpAvailable = Boolean(state.status?.tools?.ytDlp?.available);
   const hasDirectUrls = getDirectUrls().length > 0;
   const latest = getLatestDownload();
 
-  elements.authSignInBtn.disabled = jobRunning || !auth.configured;
+  elements.authSignInBtn.disabled = jobRunning;
   elements.authSignOutBtn.disabled = jobRunning;
   elements.chooseFolderBtn.disabled = state.sync.running || !supportsLocalFolder();
   elements.saveLatestBtn.disabled = state.sync.running || !latest?.files?.length;
   elements.directUrls.disabled = jobRunning;
   elements.directExtractAudio.disabled = jobRunning || !ytDlpAvailable;
-  elements.likedExtractAudio.disabled = jobRunning || !ytDlpAvailable || !auth.authenticated;
   elements.directDownloadBtn.disabled = jobRunning || !ytDlpAvailable || !hasDirectUrls;
-  elements.downloadLikedBtn.disabled = jobRunning || !ytDlpAvailable || !auth.authenticated;
+  elements.downloadLikedBtn.disabled = jobRunning;
 }
 
 function renderAll() {
@@ -470,36 +447,18 @@ async function invokeAction(url, body, button, idleLabel, busyLabel) {
 
 elements.authSignInBtn?.addEventListener('click', async () => {
   try {
-    const data = await fetchJson('/api/auth/start');
-    const width = 540;
-    const height = 680;
-    const left = Math.max(40, Math.round((window.innerWidth - width) / 2));
-    const top = Math.max(40, Math.round((window.innerHeight - height) / 2));
-    const popup = window.open(
-      data.auth_url,
-      'MusicStudioGoogleSignIn',
-      `width=${width},height=${height},left=${left},top=${top}`,
-    );
-    if (!popup) {
-      throw new Error('The Google sign-in window was blocked. Please allow pop-ups for this site and try again.');
-    }
+    openBrowserTab('https://accounts.google.com/ServiceLogin?service=youtube');
   } catch (error) {
     alert(error instanceof Error ? error.message : String(error));
   }
 });
 
 elements.authSignOutBtn?.addEventListener('click', async () => {
-  await invokeAction('/api/auth/logout', null, elements.authSignOutBtn, 'Sign Out', 'Signing Out...');
-});
-
-window.addEventListener('message', async (event) => {
-  if (event.origin !== window.location.origin) {
-    return;
+  try {
+    openBrowserTab('https://www.youtube.com/playlist?list=LL');
+  } catch (error) {
+    alert(error instanceof Error ? error.message : String(error));
   }
-  if (event.data?.type !== 'music-studio-auth') {
-    return;
-  }
-  await refreshStatus();
 });
 
 elements.chooseFolderBtn?.addEventListener('click', async () => {
@@ -527,10 +486,6 @@ elements.directExtractAudio?.addEventListener('change', () => {
   renderDirectSummary();
 });
 
-elements.likedExtractAudio?.addEventListener('change', () => {
-  renderYouTubeSummary();
-});
-
 elements.directDownloadBtn?.addEventListener('click', async () => {
   try {
     await ensureLocalFolderIfPossible();
@@ -553,21 +508,10 @@ elements.directDownloadBtn?.addEventListener('click', async () => {
 
 elements.downloadLikedBtn?.addEventListener('click', async () => {
   try {
-    await ensureLocalFolderIfPossible();
+    openBrowserTab('https://www.youtube.com/playlist?list=LL');
   } catch (error) {
     alert(error instanceof Error ? error.message : String(error));
-    return;
   }
-
-  await invokeAction(
-    '/api/youtube/download-liked',
-    {
-      extractAudio: elements.likedExtractAudio.checked,
-    },
-    elements.downloadLikedBtn,
-    'Download My Liked Videos',
-    'Starting...',
-  );
 });
 
 await refreshStatus();
