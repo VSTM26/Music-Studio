@@ -84,8 +84,20 @@
           </div>
           <p id="authStatusText" class="body-copy">Opening your normal YouTube sign-in tab...</p>
           <div class="button-row">
-            <button id="authSignInBtn" class="action action-primary">Open YouTube Sign-In Tab</button>
-            <button id="authSignOutBtn" class="action action-ghost">Open YouTube Likes Tab</button>
+            <a
+              id="authSignInBtn"
+              class="action action-primary"
+              href="https://accounts.google.com/ServiceLogin?service=youtube"
+              target="_blank"
+              rel="noopener noreferrer"
+            >Open YouTube Sign-In Tab</a>
+            <a
+              id="authSignOutBtn"
+              class="action action-ghost"
+              href="https://www.youtube.com/playlist?list=LL"
+              target="_blank"
+              rel="noopener noreferrer"
+            >Open YouTube Likes Tab</a>
           </div>
         </section>
 
@@ -135,7 +147,13 @@
             The hosted site cannot directly reuse your local YouTube browser session for private account downloads.
           </p>
           <div class="button-row">
-            <button id="downloadLikedBtn" class="action action-secondary">Open My YouTube Likes</button>
+            <a
+              id="downloadLikedBtn"
+              class="action action-secondary"
+              href="https://www.youtube.com/playlist?list=LL"
+              target="_blank"
+              rel="noopener noreferrer"
+            >Open My YouTube Likes</a>
           </div>
         </section>
 

@@ -111,13 +111,6 @@ function getAuth() {
   return state.status?.auth || { configured: false, authenticated: false };
 }
 
-function openBrowserTab(url) {
-  const popup = window.open(url, '_blank', 'noopener,noreferrer');
-  if (!popup) {
-    throw new Error('The browser blocked the new tab. Please allow pop-ups for this site and try again.');
-  }
-}
-
 function getDownloadJob() {
   return state.status?.download || {};
 }
@@ -330,14 +323,20 @@ function syncActionButtons() {
   const hasDirectUrls = getDirectUrls().length > 0;
   const latest = getLatestDownload();
 
-  elements.authSignInBtn.disabled = jobRunning;
-  elements.authSignOutBtn.disabled = jobRunning;
+  elements.authSignInBtn.classList.toggle('is-disabled', jobRunning);
+  elements.authSignInBtn.setAttribute('aria-disabled', String(jobRunning));
+  elements.authSignInBtn.tabIndex = jobRunning ? -1 : 0;
+  elements.authSignOutBtn.classList.toggle('is-disabled', jobRunning);
+  elements.authSignOutBtn.setAttribute('aria-disabled', String(jobRunning));
+  elements.authSignOutBtn.tabIndex = jobRunning ? -1 : 0;
   elements.chooseFolderBtn.disabled = state.sync.running || !supportsLocalFolder();
   elements.saveLatestBtn.disabled = state.sync.running || !latest?.files?.length;
   elements.directUrls.disabled = jobRunning;
   elements.directExtractAudio.disabled = jobRunning || !ytDlpAvailable;
   elements.directDownloadBtn.disabled = jobRunning || !ytDlpAvailable || !hasDirectUrls;
-  elements.downloadLikedBtn.disabled = jobRunning;
+  elements.downloadLikedBtn.classList.toggle('is-disabled', jobRunning);
+  elements.downloadLikedBtn.setAttribute('aria-disabled', String(jobRunning));
+  elements.downloadLikedBtn.tabIndex = jobRunning ? -1 : 0;
 }
 
 function renderAll() {
@@ -483,24 +482,22 @@ async function invokeAction(url, body, button, idleLabel, busyLabel) {
   }
 }
 
-elements.authSignInBtn?.addEventListener('click', async () => {
-  try {
-    markBrowserStepCompleted();
-    openBrowserTab('https://accounts.google.com/ServiceLogin?service=youtube');
-    renderAll();
-  } catch (error) {
-    alert(error instanceof Error ? error.message : String(error));
+elements.authSignInBtn?.addEventListener('click', (event) => {
+  if (elements.authSignInBtn.classList.contains('is-disabled')) {
+    event.preventDefault();
+    return;
   }
+  markBrowserStepCompleted();
+  renderAll();
 });
 
-elements.authSignOutBtn?.addEventListener('click', async () => {
-  try {
-    markBrowserStepCompleted();
-    openBrowserTab('https://www.youtube.com/playlist?list=LL');
-    renderAll();
-  } catch (error) {
-    alert(error instanceof Error ? error.message : String(error));
+elements.authSignOutBtn?.addEventListener('click', (event) => {
+  if (elements.authSignOutBtn.classList.contains('is-disabled')) {
+    event.preventDefault();
+    return;
   }
+  markBrowserStepCompleted();
+  renderAll();
 });
 
 elements.chooseFolderBtn?.addEventListener('click', async () => {
@@ -548,14 +545,13 @@ elements.directDownloadBtn?.addEventListener('click', async () => {
   );
 });
 
-elements.downloadLikedBtn?.addEventListener('click', async () => {
-  try {
-    markBrowserStepCompleted();
-    openBrowserTab('https://www.youtube.com/playlist?list=LL');
-    renderAll();
-  } catch (error) {
-    alert(error instanceof Error ? error.message : String(error));
+elements.downloadLikedBtn?.addEventListener('click', (event) => {
+  if (elements.downloadLikedBtn.classList.contains('is-disabled')) {
+    event.preventDefault();
+    return;
   }
+  markBrowserStepCompleted();
+  renderAll();
 });
 
 await refreshStatus();
