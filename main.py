@@ -10,10 +10,15 @@ BASE_DIR = Path(__file__).resolve().parent
 REQUIRED_MODULES = {
     "yt-dlp": "yt_dlp",
     "imageio-ffmpeg": "imageio_ffmpeg",
+    "browser-cookie3": "browser_cookie3",
+    "pywebview": "webview",
 }
 
 
 def ensure_dependencies() -> None:
+    if getattr(sys, "frozen", False):
+        return
+
     missing = [
         package_name
         for package_name, module_name in REQUIRED_MODULES.items()

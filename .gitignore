@@ -17,6 +17,8 @@ downloads/
 # Build artifacts
 build/
 dist/
+release/
+*.spec
 *.egg-info/
 .eggs/
 pip-wheel-metadata/
@@ -38,3 +40,4 @@ htmlcov/
 # Local environment files
 .env
 .env.*
+gcm-diagnose.log

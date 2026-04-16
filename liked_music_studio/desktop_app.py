@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import argparse
+import importlib.util
 import os
 import socket
 import sys
@@ -32,6 +33,21 @@ def _folder_dialog_type() -> object:
     if file_dialog is not None and hasattr(file_dialog, "FOLDER"):
         return file_dialog.FOLDER
     return getattr(webview, "FOLDER_DIALOG", 0)
+
+
+def _preferred_gui() -> str | None:
+    explicit_gui = os.environ.get("MUSIC_STUDIO_WEBVIEW_GUI", "").strip() or os.environ.get(
+        "PYWEBVIEW_GUI", ""
+    ).strip()
+    if explicit_gui:
+        return explicit_gui
+
+    if sys.platform.startswith("linux") and all(
+        importlib.util.find_spec(module_name) is not None for module_name in ("qtpy", "PySide6")
+    ):
+        return "qt"
+
+    return None
 
 
 class DesktopBridge:
@@ -90,7 +106,11 @@ def run_desktop_app() -> int:
     bridge.attach_window(window)
 
     try:
-        webview.start(debug=False)
+        start_options: dict[str, object] = {"debug": False}
+        preferred_gui = _preferred_gui()
+        if preferred_gui:
+            start_options["gui"] = preferred_gui
+        webview.start(**start_options)
     finally:
         server.shutdown()
         server.server_close()

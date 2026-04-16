@@ -1,7 +1,7 @@
 """Music Studio package."""
 
 APP_NAME = "Music Studio"
-APP_VERSION = "0.6.0"
+APP_VERSION = "0.7.0"
 APP_UPDATE_OWNER = "VSTM26"
 APP_UPDATE_REPO = "Music-Studio"
 APP_UPDATE_BRANCH = "main"

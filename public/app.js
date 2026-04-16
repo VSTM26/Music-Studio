@@ -51,12 +51,12 @@ function renderPlatformNote(platform) {
 
   if (platform === "unknown") {
     elements.platformNote.textContent =
-      "Each button downloads a real GitHub release asset, so users can pick Windows, macOS, or Linux without hitting an empty Releases page.";
+      "Each button downloads an actual packaged desktop app, so users can pick Windows, macOS, or Linux without hitting an empty Releases page.";
     return;
   }
 
   elements.platformNote.textContent =
-    `This browser looks like ${platformLabel(platform)}. That option is highlighted below, and all three buttons now download real GitHub release files.`;
+    `This browser looks like ${platformLabel(platform)}. That option is highlighted below, and all three buttons now download actual packaged desktop apps.`;
 }
 
 const platform = detectPlatform();

@@ -60,8 +60,9 @@ python main.py --helper-only
 ## Packaging notes
 
 - this codebase is structured to be packaged as a desktop app
-- for public releases, build a native bundle on each operating system
-- `PyInstaller` is the simplest next packaging path, but it must be run separately on Windows, macOS, and Linux
+- tagged GitHub releases build real GUI bundles for Windows, macOS, and Linux
+- the release assets contain the packaged app itself, not just the source tree
+- local packaging is handled by `python scripts/build_desktop_release.py`
 
 ## Dependencies
 
