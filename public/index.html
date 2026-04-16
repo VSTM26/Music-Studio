@@ -39,15 +39,33 @@
               Music Studio uses the user’s real local browser session, downloads with local tools,
               and saves finished files into a folder they choose on Windows, macOS, or Linux.
             </p>
-            <div class="hero-actions">
+            <div class="platform-downloads" aria-label="Desktop downloads">
               <a
-                id="primaryDownload"
-                class="button button-primary"
-                href="https://github.com/VSTM26/Music-Studio/releases/latest"
+                class="button button-primary platform-download"
+                data-platform="windows"
+                href="https://github.com/VSTM26/Music-Studio/releases/latest/download/Music-Studio-Windows.zip"
                 target="_blank"
                 rel="noreferrer"
               >
-                Download Latest Release
+                Download for Windows
+              </a>
+              <a
+                class="button button-primary platform-download"
+                data-platform="macos"
+                href="https://github.com/VSTM26/Music-Studio/releases/latest/download/Music-Studio-macOS.zip"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Download for macOS
+              </a>
+              <a
+                class="button button-primary platform-download"
+                data-platform="linux"
+                href="https://github.com/VSTM26/Music-Studio/releases/latest/download/Music-Studio-Linux.tar.gz"
+                target="_blank"
+                rel="noreferrer"
+              >
+                Download for Linux
               </a>
               <a
                 class="button button-secondary"
@@ -59,7 +77,7 @@
               </a>
             </div>
             <p id="platformNote" class="platform-note">
-              Desktop installers and release files are published on GitHub Releases.
+              These buttons now point at real GitHub release assets for Windows, macOS, and Linux.
             </p>
           </div>
 
@@ -88,35 +106,35 @@
             <a
               class="download-card"
               data-platform="windows"
-              href="https://github.com/VSTM26/Music-Studio/releases/latest"
+              href="https://github.com/VSTM26/Music-Studio/releases/latest/download/Music-Studio-Windows.zip"
               target="_blank"
               rel="noreferrer"
             >
               <span class="download-os">Windows</span>
-              <strong>Grab the latest Windows build</strong>
-              <span>Installer or packaged build from GitHub Releases</span>
+              <strong>Download the Windows release</strong>
+              <span>Unzip it and run <code>run-liked-music-studio.cmd</code></span>
             </a>
             <a
               class="download-card"
               data-platform="macos"
-              href="https://github.com/VSTM26/Music-Studio/releases/latest"
+              href="https://github.com/VSTM26/Music-Studio/releases/latest/download/Music-Studio-macOS.zip"
               target="_blank"
               rel="noreferrer"
             >
               <span class="download-os">macOS</span>
-              <strong>Grab the latest Mac build</strong>
-              <span>Use the newest signed package you publish in Releases</span>
+              <strong>Download the macOS release</strong>
+              <span>Extract it and run <code>run-liked-music-studio.command</code></span>
             </a>
             <a
               class="download-card"
               data-platform="linux"
-              href="https://github.com/VSTM26/Music-Studio/releases/latest"
+              href="https://github.com/VSTM26/Music-Studio/releases/latest/download/Music-Studio-Linux.tar.gz"
               target="_blank"
               rel="noreferrer"
             >
               <span class="download-os">Linux</span>
-              <strong>Grab the latest Linux build</strong>
-              <span>AppImage, tarball, or distro package from Releases</span>
+              <strong>Download the Linux release</strong>
+              <span>Extract it and run <code>./run-liked-music-studio.sh</code></span>
             </a>
           </div>
         </section>
@@ -130,17 +148,17 @@
             <article class="step-card">
               <span class="step-index">01</span>
               <h3>Download the app</h3>
-              <p>Install Music Studio on the user’s own machine instead of sending them into a remote browser or VM.</p>
+              <p>Download the bundle for Windows, macOS, or Linux and unpack it on the user’s machine.</p>
             </article>
             <article class="step-card">
               <span class="step-index">02</span>
-              <h3>Sign into YouTube in their browser</h3>
-              <p>Music Studio imports the local browser session so protected videos and likes can use the user’s real credentials.</p>
+              <h3>Run the included launcher</h3>
+              <p>Use the OS-specific starter file to set up Python dependencies and open the desktop app.</p>
             </article>
             <article class="step-card">
               <span class="step-index">03</span>
               <h3>Choose a folder and download</h3>
-              <p>Paste links or pull likes, then save finished files right into the folder the user picked.</p>
+              <p>Then sign into YouTube in the normal browser, import the session, and save files into the chosen folder.</p>
             </article>
           </div>
         </section>
@@ -169,16 +187,16 @@
         <section class="cta-strip">
           <div>
             <p class="eyebrow">Ready To Ship</p>
-            <h2>Host this page anywhere. Let GitHub Releases handle the app binaries.</h2>
+            <h2>Host this page anywhere. The buttons now target real release files.</h2>
           </div>
           <div class="cta-actions">
             <a
               class="button button-primary"
-              href="https://github.com/VSTM26/Music-Studio/releases/latest"
+              href="https://github.com/VSTM26/Music-Studio/releases/latest/download/Music-Studio-Windows.zip"
               target="_blank"
               rel="noreferrer"
             >
-              Open Releases
+              Download Windows Release
             </a>
             <a
               class="button button-secondary"

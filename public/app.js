@@ -1,16 +1,11 @@
-const DOWNLOADS_URL = "https://github.com/VSTM26/Music-Studio/releases/latest";
-
 const elements = {
-  primaryDownload: document.querySelector("#primaryDownload"),
   platformNote: document.querySelector("#platformNote"),
-  downloadCards: [...document.querySelectorAll(".download-card[data-platform]")],
+  platformTargets: [...document.querySelectorAll("[data-platform]")],
 };
 
 function detectPlatform() {
   const source = [
-    navigator.userAgentData && Array.isArray(navigator.userAgentData.platform)
-      ? navigator.userAgentData.platform.join(" ")
-      : navigator.userAgentData && navigator.userAgentData.platform,
+    navigator.userAgentData && navigator.userAgentData.platform,
     navigator.platform,
     navigator.userAgent,
   ]
@@ -43,31 +38,27 @@ function platformLabel(platform) {
   return "your platform";
 }
 
-function highlightPlatformCards(platform) {
-  for (const card of elements.downloadCards) {
-    const matches = card.getAttribute("data-platform") === platform;
-    card.classList.toggle("is-recommended", matches);
+function highlightPlatform(platform) {
+  for (const element of elements.platformTargets) {
+    element.classList.toggle("is-recommended", element.getAttribute("data-platform") === platform);
   }
 }
 
-function hydrateDownloads() {
-  const platform = detectPlatform();
-  const label = platformLabel(platform);
-
-  if (elements.primaryDownload) {
-    elements.primaryDownload.href = DOWNLOADS_URL;
-    elements.primaryDownload.textContent =
-      platform === "unknown" ? "Download Latest Release" : `Download for ${label}`;
+function renderPlatformNote(platform) {
+  if (!elements.platformNote) {
+    return;
   }
 
-  if (elements.platformNote) {
+  if (platform === "unknown") {
     elements.platformNote.textContent =
-      platform === "unknown"
-        ? "Desktop installers and release files are published on GitHub Releases."
-        : `This browser looks like ${label}. The matching download is highlighted below, and all builds live on GitHub Releases.`;
+      "Each button downloads a real GitHub release asset, so users can pick Windows, macOS, or Linux without hitting an empty Releases page.";
+    return;
   }
 
-  highlightPlatformCards(platform);
+  elements.platformNote.textContent =
+    `This browser looks like ${platformLabel(platform)}. That option is highlighted below, and all three buttons now download real GitHub release files.`;
 }
 
-hydrateDownloads();
+const platform = detectPlatform();
+highlightPlatform(platform);
+renderPlatformNote(platform);

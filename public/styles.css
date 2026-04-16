@@ -35,6 +35,14 @@ a {
   text-decoration: none;
 }
 
+code {
+  padding: 0.12rem 0.38rem;
+  border-radius: 8px;
+  background: rgba(16, 32, 40, 0.08);
+  font-family: "Cascadia Code", "Consolas", monospace;
+  font-size: 0.92em;
+}
+
 .site-shell {
   position: relative;
   width: min(1180px, calc(100% - 32px));
@@ -183,7 +191,7 @@ a {
   max-width: 58ch;
 }
 
-.hero-actions,
+.platform-downloads,
 .cta-actions {
   display: flex;
   flex-wrap: wrap;
@@ -216,6 +224,15 @@ a {
 .button-secondary {
   background: rgba(16, 32, 40, 0.08);
   color: var(--ink);
+}
+
+.platform-download {
+  min-width: 210px;
+}
+
+.platform-download.is-recommended {
+  background: linear-gradient(135deg, var(--teal) 0%, #2d8a84 100%);
+  box-shadow: 0 18px 34px rgba(31, 107, 104, 0.24);
 }
 
 .platform-note {
@@ -405,7 +422,7 @@ a {
     max-width: none;
   }
 
-  .hero-actions,
+  .platform-downloads,
   .cta-actions {
     flex-direction: column;
   }

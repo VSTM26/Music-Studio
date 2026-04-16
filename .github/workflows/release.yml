@@ -1,0 +1,48 @@
+name: Publish Desktop Bundles
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: write
+
+jobs:
+  publish-release:
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Check out code
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Build release assets
+        shell: bash
+        run: |
+          mkdir -p dist
+          git archive --format=zip --prefix=Music-Studio/ -o dist/Music-Studio-Windows.zip "$GITHUB_SHA"
+          git archive --format=zip --prefix=Music-Studio/ -o dist/Music-Studio-macOS.zip "$GITHUB_SHA"
+          git archive --format=tar.gz --prefix=Music-Studio/ -o dist/Music-Studio-Linux.tar.gz "$GITHUB_SHA"
+
+      - name: Publish GitHub release
+        uses: softprops/action-gh-release@v2
+        with:
+          name: Music Studio ${{ github.ref_name }}
+          generate_release_notes: true
+          body: |
+            Cross-platform desktop starter bundles for Music Studio.
+
+            Windows:
+            Unzip the download and run `run-liked-music-studio.cmd`
+
+            macOS:
+            Unzip the download and run `run-liked-music-studio.command`
+
+            Linux:
+            Extract the tarball and run `./run-liked-music-studio.sh`
+          files: |
+            dist/Music-Studio-Windows.zip
+            dist/Music-Studio-macOS.zip
+            dist/Music-Studio-Linux.tar.gz
